@@ -23,7 +23,7 @@ com as telas **montadas pelos metadados**. O primeiro uso é a área de gestão 
 
 ## O repositório do back-end
 
-A API (.NET 8), o banco (scripts do schema no schema `catalogo`) e o conhecimento que vale para os dois lados ficam no
+A API (.NET 8), o banco (scripts do schema no schema `cat`, padrão de nomes da CAIXA, ADR 0052) e o conhecimento que vale para os dois lados ficam no
 **repositório do back-end** (SDCAT-BACKEND), e não são copiados para cá (ADR 0051, [no back-end](docs/adr/README.md#no-repositório-do-back-end-citados-pelo-front)):
 
 - **Regras de negócio** (`RNxx`): `docs/regras-de-negocio.md`. O front cita o mesmo id que o back-end.
