@@ -18,6 +18,12 @@ body {
   font-feature-settings: 'cv11', 'ss01';
 }
 
+// O navegador dá ao <fieldset> `min-inline-size: min-content`: ele não encolhe abaixo do conteúdo e, num card estreito, vaza pela
+// borda (a linha do título e os controles da direita). Como qualquer bloco, ele se ajusta à largura de quem o contém.
+fieldset {
+  min-inline-size: 0;
+}
+
 // Os componentes do PrimeNG herdam a fonte da interface.
 button,
 input,
@@ -1422,18 +1428,21 @@ p-dialog .formulario,
   }
 }
 
+// Controles lado a lado (ex.: Dimensão + Agrupar por + remover). Os campos dividem a largura do card e encolhem até uma largura
+// legível; abaixo dela, a linha quebra em vez de vazar pela borda.
 .linha-controle {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
-  gap: var(--espaco-2);
+  gap: 0 var(--espaco-2);
 
   > .campo {
-    flex: 1;
-    min-width: 0;
+    flex: 1 1 0;
+    min-width: 6rem;
   }
 
   > .campo-estreito {
-    flex: 0 0 8rem;
+    flex: 0 1 8rem;
   }
 
   > p-button {

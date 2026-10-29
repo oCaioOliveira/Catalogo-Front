@@ -67,6 +67,7 @@ const CHAVE_MENU_RECOLHIDO = 'catalogo.menu.recolhido';
 })
 export class LayoutComponent {
   readonly permissoes = inject(PermissoesService);
+  /** O contador de "Aprovações": o serviço só consulta para GESTOR e ADMINISTRADOR, e não a cada navegação (ADR 0045). */
   readonly pendentes = inject(PendentesService);
   readonly areaAtual = inject(AreaAtualService);
   private readonly metadados = inject(MetadadosService);
@@ -108,10 +109,6 @@ export class LayoutComponent {
   });
 
   constructor() {
-    // GESTOR e ADMINISTRADOR: o contador de "Aprovações", atualizado ao navegar e a cada 2 minutos (ADR 0045).
-    if (this.permissoes.podeVerAprovacoes()) {
-      this.pendentes.iniciar();
-    }
     // Troca de área ou metadados alterados na administração: recarrega as áreas e o menu.
     effect(() => {
       this.metadados.versao();

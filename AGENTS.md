@@ -151,7 +151,10 @@ Como funciona: [`docs/frontend.md` → "Aprovação e avaliação"](docs/fronten
 - Regras de tela em funções puras com teste: `core/permissoes/permissoes.ts` (quem cria, edita, decide, avalia),
   `core/aprovacao/regras-aprovacao.ts` (situação, faixa, justificativa, "aguardando há"), `core/avaliacao/regras-avaliacao.ts`
   (resumo, respostas, validação com as chaves da API) e `features/configuracoes-equipe/modelo/regras-modelo.ts` (editor de modelo).
-- O contador de pendentes é por intervalo (2 minutos) e a cada navegação (`PendentesService`), sem tempo real.
+- O contador de pendentes (`PendentesService`) é **só para GESTOR e ADMINISTRADOR** (a mesma regra do atalho, `podeVerAprovacoes`):
+  para os outros perfis, nenhuma requisição. Consulta ao entrar (ou trocar de usuário na mesma aba), ao trocar de área, depois de
+  uma decisão e a cada 2 minutos, sem tempo real; **navegar não consulta de novo** (o Início usa o valor guardado da área, `daArea`).
+- Requisições de fundo (contadores, badges) vão com `silencioso()` (`core/erros/contexto-erros.ts`): se falharem, falham sem toast.
 - E2E: crie a própria equipe e usuários (prefixo único), habilite a equipe na área de gestão que o teste usa (`habilitarNaListagem`, RN90),
   ligue os recursos **só nela** e deixe a limpeza com o helper compartilhado (abaixo). Nunca configure as equipes de desenvolvimento.
   Alternador (`p-toggleswitch`): clique no `getByRole('switch', { name })`, não no `<label>`.

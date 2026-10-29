@@ -4,7 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { firstValueFrom } from 'rxjs';
-import { tratarNoComponente } from '../erros/contexto-erros';
+import { silencioso, tratarNoComponente } from '../erros/contexto-erros';
 import { erroInterceptor } from '../erros/erro.interceptor';
 import { authInterceptor } from './auth.interceptor';
 import { AuthService } from './auth.service';
@@ -90,5 +90,17 @@ describe('interceptors de autenticação e de erros', () => {
   it('status tratado pelo componente não vira toast', async () => {
     await chamarComErro(400, { codigo: 'VALIDACAO', errors: {} }, '/api/v1/grupos', tratarNoComponente(400));
     expect(mensagens.add).not.toHaveBeenCalled();
+  });
+
+  it('requisição de fundo (silencioso) falha sem toast, qualquer que seja o status', async () => {
+    await chamarComErro(403, { codigo: 'SEM_PERMISSAO' }, '/api/v1/aprovacoes/pendentes', silencioso());
+    await chamarComErro(500, { codigo: 'ERRO_INTERNO', traceId: 't' }, '/api/v1/aprovacoes/pendentes', silencioso());
+    expect(mensagens.add).not.toHaveBeenCalled();
+  });
+
+  it('requisição de fundo com 401 ainda leva ao login', async () => {
+    await chamarComErro(401, { codigo: 'NAO_AUTENTICADO' }, '/api/v1/aprovacoes/pendentes', silencioso());
+    expect(auth.token()).toBeNull();
+    expect(router.navigate).toHaveBeenCalled();
   });
 });

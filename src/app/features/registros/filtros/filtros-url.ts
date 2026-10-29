@@ -8,7 +8,7 @@ import { environment } from '../../../../environments/environment';
 /**
  * Filtros, página e ordenação da listagem. O estado mora na URL (docs/adr/0037): os query params da tela são
  * EXATAMENTE os parâmetros que a API aceita (RN17 a RN19, docs/api/README.md), ex.:
- *   ?bateria_testes.contem=carga&data_execucao.de=2026-10-01&projeto=<id>&pagina=2&ordenacao=-vazao_media_tps
+ *   ?titulo.contem=consulta&data_execucao.de=2026-10-01&projeto=<id>&pagina=2&ordenacao=-vazao_media_tps
  * Recarregar a página ou compartilhar o link mantém a mesma consulta. Funções puras (filtros-url.spec.ts).
  */
 

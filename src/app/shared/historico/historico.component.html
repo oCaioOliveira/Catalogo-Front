@@ -29,6 +29,10 @@
           <p-tag [value]="nomeOperacao(item.operacao)" [severity]="severidade(item.operacao)" />
           @if (item.origem === 'IMPORTACAO') {
             <small class="origem-historico"> <i class="pi pi-upload" aria-hidden="true"></i> Importação </small>
+          } @else if (item.origem === 'MIGRACAO_SHAREPOINT') {
+            <small class="origem-historico">
+              <i class="pi pi-history" aria-hidden="true"></i> Migração SharePoint
+            </small>
           }
         </td>
         <td>

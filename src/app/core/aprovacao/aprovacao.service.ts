@@ -8,6 +8,7 @@ import { apiV1AprovacoesPendentesGet } from '../../api/fn/aprovacoes/api-v-1-apr
 import { apiV1EquipesEquipeIdConfiguracoesGruposGrupoEntidadesEntidadeAprovacaoGet } from '../../api/fn/configuracoes/api-v-1-equipes-equipe-id-configuracoes-grupos-grupo-entidades-entidade-aprovacao-get';
 import { apiV1EquipesEquipeIdConfiguracoesGruposGrupoEntidadesEntidadeAprovacaoPut } from '../../api/fn/configuracoes/api-v-1-equipes-equipe-id-configuracoes-grupos-grupo-entidades-entidade-aprovacao-put';
 import { apiV1GruposGrupoEntidadesEntidadeRegistrosIdAprovacaoPost } from '../../api/fn/registros/api-v-1-grupos-grupo-entidades-entidade-registros-id-aprovacao-post';
+import { silencioso } from '../erros/contexto-erros';
 import { PaginaDe, Registro, registroDeDto } from '../registros/modelo-registro';
 
 /** Um item da fila de aprovação (GET /api/v1/aprovacoes/pendentes, RN36). */
@@ -78,14 +79,23 @@ export class AprovacaoService {
   }
 
   /** A fila, do mais antigo para o mais novo (RN36). */
-  async pendentes(filtros: FiltrosFila, pagina: number, tamanho: number): Promise<PaginaDe<Pendente>> {
-    const resultado = await this.api.invoke(apiV1AprovacoesPendentesGet, {
-      grupo: filtros.grupo || undefined,
-      entidade: filtros.entidade || undefined,
-      equipeId: filtros.equipeId || undefined,
-      pagina: String(pagina),
-      tamanho: String(tamanho),
-    });
+  async pendentes(
+    filtros: FiltrosFila,
+    pagina: number,
+    tamanho: number,
+    contexto?: HttpContext,
+  ): Promise<PaginaDe<Pendente>> {
+    const resultado = await this.api.invoke(
+      apiV1AprovacoesPendentesGet,
+      {
+        grupo: filtros.grupo || undefined,
+        entidade: filtros.entidade || undefined,
+        equipeId: filtros.equipeId || undefined,
+        pagina: String(pagina),
+        tamanho: String(tamanho),
+      },
+      contexto,
+    );
     return {
       itens: (resultado.itens ?? []).map((p) => ({
         id: p.id ?? '',
@@ -103,8 +113,11 @@ export class AprovacaoService {
     };
   }
 
-  /** Quantos pendentes o usuário pode decidir (o contador do menu): uma página de um item, só pelo total. */
-  async quantidadePendentes(): Promise<number> {
-    return (await this.pendentes({}, 1, 1)).total;
+  /**
+   * Quantos pendentes o usuário pode decidir (contadores do menu e do Início; com `grupo`, só os da área): uma página de um item, só
+   * pelo total. É requisição de fundo: se falhar, falha em silêncio (sem toast). Quem chama é o PendentesService.
+   */
+  async quantidadePendentes(grupo?: string): Promise<number> {
+    return (await this.pendentes({ grupo }, 1, 1, silencioso())).total;
   }
 }

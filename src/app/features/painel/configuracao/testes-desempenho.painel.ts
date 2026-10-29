@@ -2,7 +2,7 @@ import { ConfiguracaoPainel } from '../modelo/configuracao';
 
 /**
  * Widgets pré-configurados do grupo Testes de Desempenho (docs/frontend.md → "Painel gerencial", ADR 0039). As medidas ficam no
- * CENÁRIO; as dimensões de gerência (ambiente, projeto, status, tipo, data de execução), no RELATÓRIO: os widgets de cenário
+ * CENÁRIO; as dimensões de gerência (ambiente, projeto, status, tecnologia, data de execução), no RELATÓRIO: os widgets de cenário
  * usam caminhos `relatorio_teste.<campo>` (RN89). O período do painel vai para a DATA DE EXECUÇÃO (`campoPeriodo`), não para a
  * data de criação.
  *
@@ -17,7 +17,7 @@ export const PAINEL_TESTES_DESEMPENHO: ConfiguracaoPainel = {
       id: 'medias-gerais',
       titulo: 'Médias gerais dos cenários no período',
       descricao:
-        'Média de vazão (TPS), de percentil 95 (ms) e de taxa de erro (%) de todos os cenários executados no período.',
+        'Média de vazão (TPS), de percentil 95 (ms) e de taxa de erro (%) de todos os cenários executados no período (o percentil 95 é opcional: a média usa só os cenários que o têm).',
       entidade: 'cenario_teste',
       agruparPor: [],
       metricas: ['media:vazao_media_tps', 'media:percentil_95_ms', 'media:taxa_erro_percentual'],
@@ -37,9 +37,9 @@ export const PAINEL_TESTES_DESEMPENHO: ConfiguracaoPainel = {
     },
     {
       id: 'relatorios-por-tipo',
-      titulo: 'Relatórios por tipo de teste',
+      titulo: 'Relatórios por tecnologia',
       descricao:
-        'Quantidade de relatórios executados no período, por tipo de teste (do mais frequente ao menos frequente).',
+        'Quantidade de relatórios executados no período, por tecnologia testada: API, WEB ou Fila MQ (do mais frequente ao menos frequente).',
       entidade: 'relatorio_teste',
       agruparPor: ['tipo_teste'],
       metricas: ['contagem'],

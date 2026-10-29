@@ -432,7 +432,9 @@ não é excluído nem muda de tipo: a tela explica e sugere desativar. Ao lado, 
 (link para o detalhe), equipe, autor e "aguardando há" (`formatarAguardando`). Filtros de listagem, tipo e equipe na URL: as listagens
 são as que o usuário vê e em que tem equipe; as equipes, as dele na listagem filtrada (sem listagem, as de todas; `opcoesDaFila`,
 RN91). O menu mostra
-um **contador** (`PendentesService`), atualizado a cada navegação e a cada 2 minutos, sem tempo real.
+um **contador** (`PendentesService`), só para GESTOR e ADMINISTRADOR (para os outros perfis, nenhuma requisição), atualizado ao
+entrar, ao trocar de área, depois de uma decisão e a cada 2 minutos, sem tempo real; navegar não consulta de novo. A consulta é de
+fundo (`silencioso()`): se falhar, não mostra aviso.
 
 ### Avaliação nas telas de itens
 

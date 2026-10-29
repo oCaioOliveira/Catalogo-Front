@@ -44,6 +44,7 @@ describe('caminhos por referência (RN89)', () => {
       'percentil_95_ms',
       'vazao_media_tps',
       'taxa_erro_percentual',
+      'relatorio_teste.bateria_testes', // INTEIRO desde o V016: numérico também por caminho
     ]);
   });
 
@@ -75,7 +76,7 @@ describe('opções da análise personalizada', () => {
     const opcoes = opcoesDeMetrica(entidades, cenario);
     expect(opcoes[0].valor).toBe('contagem');
     expect(opcoes).toContain({ valor: 'media:vazao_media_tps', rotulo: 'Média de Vazão média (TPS)' });
-    expect(opcoes.length).toBe(1 + 6 * 4);
+    expect(opcoes.length).toBe(1 + 7 * 4); // 6 do cenário + relatorio_teste.bateria_testes
   });
 
   it('campo do período: a data de criação ou uma data (também por caminho)', () => {

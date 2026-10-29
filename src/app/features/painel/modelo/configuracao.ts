@@ -21,7 +21,7 @@ export interface ConfiguracaoWidget {
   agruparPor: string[];
   /** Até 5 métricas: "contagem", "media:vazao_media_tps", "maximo:relatorio_teste.x"... Vazio = contagem. */
   metricas: string[];
-  /** Filtros FIXOS, no formato da API (os da listagem, também por caminho): { "relatorio_teste.tipo_teste": "Carga" }. */
+  /** Filtros FIXOS, no formato da API (os da listagem, também por caminho): { "relatorio_teste.tipo_teste": "API" }. */
   filtros?: Record<string, string>;
   /**
    * O campo DATA ou DATA_HORA (também por caminho) que recebe o PERÍODO do painel, como `<campo>.de` e `<campo>.ate`. Nulo =

@@ -12,7 +12,7 @@ import { NOMES_VISUALIZACAO, visualizacoesPermitidas } from './visualizacoes';
  *            (o padrão, "Últimos 12 meses", fica fora da URL; as datas dos atalhos são recalculadas a cada dia)
  *   análise: os mesmos + ?entidade=cenario_teste&agruparPor=relatorio_teste.ambiente&metricas=media:vazao_media_tps
  *            &visualizacao=colunas&campoPeriodo=relatorio_teste.data_execucao&ordenarPor=...&limite=...&titulo=...
- *            &f.relatorio_teste.tipo_teste=Carga   (filtros fixos com o prefixo "f.", para não colidir com "de" e "ate")
+ *            &f.relatorio_teste.tipo_teste=API   (filtros fixos com o prefixo "f.", para não colidir com "de" e "ate")
  */
 
 export interface EstadoPainel {

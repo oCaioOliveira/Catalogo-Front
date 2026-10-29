@@ -2,14 +2,15 @@ import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { catchError, throwError } from 'rxjs';
-import { STATUS_TRATADOS_PELO_COMPONENTE } from './contexto-erros';
+import { ERRO_SILENCIOSO, STATUS_TRATADOS_PELO_COMPONENTE } from './contexto-erros';
 import { mensagemDoErro } from './mensagens-erro';
 import { lerProblema } from './problema';
 
 /**
  * Mostra um toast com a mensagem amigável de qualquer erro da API (mapa em mensagens-erro.ts). Ficam de fora:
  *   - os status que a chamada pediu para tratar sozinha (STATUS_TRATADOS_PELO_COMPONENTE, ex.: 400 no formulário);
- *   - 401 e a troca de senha obrigatória, que o interceptor de autenticação resolve indo para outra tela.
+ *   - 401 e a troca de senha obrigatória, que o interceptor de autenticação resolve indo para outra tela;
+ *   - as requisições de fundo (contadores, badges), marcadas com `silencioso()`: falham sem aviso.
  * Erros 5xx mostram o traceId, para o usuário informar ao suporte. O erro continua para quem chamou.
  */
 export const erroInterceptor: HttpInterceptorFn = (requisicao, proximo) => {
@@ -19,6 +20,7 @@ export const erroInterceptor: HttpInterceptorFn = (requisicao, proximo) => {
     catchError((erro: unknown) => {
       if (
         erro instanceof HttpErrorResponse &&
+        !requisicao.context.get(ERRO_SILENCIOSO) &&
         !requisicao.context.get(STATUS_TRATADOS_PELO_COMPONENTE).includes(erro.status)
       ) {
         const problema = lerProblema(erro);

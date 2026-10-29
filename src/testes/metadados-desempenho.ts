@@ -1,7 +1,7 @@
 import { Entidade } from '../app/core/metadados/modelo';
 import { campo, entidade } from './metadados-de-teste';
 
-/** As entidades de Testes de Desempenho que o painel usa, como vêm de GET .../entidades (mesmas chaves e nomes do seed). */
+/** As entidades de Testes de Desempenho que o painel usa, como vêm de GET .../entidades (mesmas chaves e nomes do seed, V015 + V016). */
 export function entidadesDesempenho(): Entidade[] {
   const ref = (chave: string, nome: string, apontada: string) =>
     campo(chave, 'REFERENCIA', { nome, entidadeReferenciada: apontada });
@@ -20,15 +20,16 @@ export function entidadesDesempenho(): Entidade[] {
     entidade(
       'relatorio_teste',
       [
+        campo('titulo', 'TEXTO', { nome: 'Título' }),
         ref('projeto', 'Projeto', 'projeto'),
         ref('ambiente', 'Ambiente', 'ambiente'),
         ref('status_resultado', 'Status', 'status_resultado'),
         campo('data_execucao', 'DATA_HORA', { nome: 'Data de execução' }),
-        campo('bateria_testes', 'TEXTO', { nome: 'Bateria de testes' }),
-        campo('tipo_teste', 'TEXTO', { nome: 'Tipo de teste' }),
+        campo('bateria_testes', 'INTEIRO', { nome: 'Nº da bateria' }),
+        campo('tipo_teste', 'LISTA', { nome: 'Tecnologia', opcoes: ['API', 'WEB', 'Fila MQ'] }),
         campo('conclusao', 'TEXTO_LONGO', { nome: 'Conclusão' }),
       ],
-      { nome: 'Relatório de Teste', campoExibicao: 'bateria_testes' },
+      { nome: 'Relatório de Teste', campoExibicao: 'titulo' },
     ),
     entidade(
       'cenario_teste',
@@ -42,8 +43,8 @@ export function entidadesDesempenho(): Entidade[] {
         ref('endpoint_servico', 'Endpoint', 'endpoint_servico'),
         campo('numero_cenario', 'INTEIRO', { nome: 'Número do cenário' }),
         campo('usuarios_virtuais', 'INTEIRO', { nome: 'Usuários virtuais' }),
-        campo('tempo_medio_resposta_ms', 'INTEIRO', { nome: 'Tempo médio (ms)' }),
-        campo('percentil_95_ms', 'INTEIRO', { nome: 'Percentil 95 (ms)' }),
+        campo('tempo_medio_resposta_ms', 'DECIMAL', { nome: 'Tempo médio (ms)', escala: 2 }),
+        campo('percentil_95_ms', 'DECIMAL', { nome: 'Percentil 95 (ms)', escala: 2 }),
         campo('vazao_media_tps', 'DECIMAL', { nome: 'Vazão média (TPS)', escala: 2 }),
         campo('taxa_erro_percentual', 'DECIMAL', { nome: 'Taxa de erro (%)', escala: 2 }),
       ],

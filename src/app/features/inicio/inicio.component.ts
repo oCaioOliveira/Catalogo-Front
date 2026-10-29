@@ -4,7 +4,7 @@ import { Button } from 'primeng/button';
 import { Message } from 'primeng/message';
 import { Skeleton } from 'primeng/skeleton';
 import { Tooltip } from 'primeng/tooltip';
-import { AprovacaoService } from '../../core/aprovacao/aprovacao.service';
+import { PendentesService } from '../../core/aprovacao/pendentes.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { Listagem } from '../../core/metadados/listagens';
 import { MetadadosService } from '../../core/metadados/metadados.service';
@@ -46,7 +46,7 @@ export class InicioComponent {
   private readonly auth = inject(AuthService);
   private readonly metadados = inject(MetadadosService);
   private readonly registros = inject(RegistrosService);
-  private readonly aprovacao = inject(AprovacaoService);
+  private readonly contadorPendentes = inject(PendentesService);
   readonly permissoes = inject(PermissoesService);
 
   readonly area = signal<Listagem | null>(null);
@@ -99,12 +99,10 @@ export class InicioComponent {
         () => undefined,
       );
     }
-    // Pendências desta área: só para quem decide e só se algum tipo de item tem a aprovação ligada.
+    // Pendências desta área: só para quem decide e só se algum tipo de item tem a aprovação ligada. O valor fica guardado no
+    // PendentesService (uma consulta por área, não a cada vez que o Início abre), e uma falha não mostra aviso.
     if (this.permissoes.podeVerAprovacoes() && entidades.some((e) => e.equipesComAprovacao.length > 0)) {
-      void this.aprovacao.pendentes({ grupo }, 1, 1).then(
-        (pagina) => this.pendentes.set(pagina.total),
-        () => undefined,
-      );
+      void this.contadorPendentes.daArea(grupo).then((n) => this.pendentes.set(n));
     }
   }
 

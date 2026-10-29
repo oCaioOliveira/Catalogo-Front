@@ -5,12 +5,14 @@ import { entrarComToken } from './sessao';
 
 /**
  * Usuários criados pelo próprio teste (matrícula "e2e-…", desativados pelo helper de limpeza, e2e/apoio/limpeza.ts). A senha
- * provisória é trocada por uma forte aleatória, que nunca é impressa nem gravada.
+ * provisória é trocada por uma forte aleatória, que nunca é impressa nem gravada (fica só na memória do teste, para quem entra pela
+ * tela de login).
  */
 export interface UsuarioTeste {
   id: string;
   matricula: string;
   token: string;
+  senha: string;
 }
 
 function senhaForte(): string {
@@ -55,12 +57,13 @@ export async function criarUsuarioDeTeste(
   );
   expect(status, `POST /usuarios ${perfil}`).toBe(201);
   const token = await entrarComEspera(matricula, corpo.senhaProvisoria);
+  const senha = senhaForte();
   const troca = await chamar(token, 'POST', '/auth/trocar-senha', {
     senhaAtual: corpo.senhaProvisoria,
-    novaSenha: senhaForte(),
+    novaSenha: senha,
   });
   expect(troca.status, 'trocar-senha').toBe(204);
-  return { id: corpo.usuario.id, matricula, token };
+  return { id: corpo.usuario.id, matricula, token, senha };
 }
 
 /** Uma página nova (outro contexto: outra sessão, sem o localStorage das outras) já logada com o token. */

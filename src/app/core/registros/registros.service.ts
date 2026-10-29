@@ -2,6 +2,7 @@ import { HttpClient, HttpContext, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { filter, firstValueFrom } from 'rxjs';
 import { rotuloComSituacao } from '../aprovacao/regras-aprovacao';
+import { silencioso } from '../erros/contexto-erros';
 import { Api } from '../../api/api';
 import { ApiConfiguration } from '../../api/api-configuration';
 import {
@@ -109,9 +110,12 @@ export class RegistrosService {
     }));
   }
 
-  /** Quantos itens do tipo o usuário vê (o total da listagem, com uma página de um item só). */
+  /**
+   * Quantos itens do tipo o usuário vê (o total da listagem, com uma página de um item só). É contador de fundo (atalhos do Início):
+   * se falhar, falha em silêncio (sem toast).
+   */
   async contar(grupo: string, entidade: string): Promise<number> {
-    return (await this.listar(grupo, entidade, { tamanho: '1' })).total;
+    return (await this.listar(grupo, entidade, { tamanho: '1' }, silencioso())).total;
   }
 
   async criar(grupo: string, entidade: string, corpo: CorpoRegistro, contexto?: HttpContext): Promise<Registro> {

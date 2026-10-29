@@ -9,7 +9,7 @@
 //   CATALOGO_ADMIN_SENHA     senha desse administrador (obrigatória)
 //   CATALOGO_SENHA_DEV       senha dos usuários de exemplo dev.* (obrigatória; 10+ caracteres, letras e números)
 //
-// Cria: Equipe Alfa e Equipe Beta; um usuário de cada perfil (dev.externo, dev.interno, dev.gestor,
+// Cria: Equipe Alfa e Equipe Beta (habilitadas na área testes_desempenho); um usuário de cada perfil (dev.externo, dev.interno, dev.gestor,
 // dev.administrador) e dev.duas (INTERNO nas duas equipes); comunidades, siglas, ambientes e status (globais);
 // projetos, endpoints e RTCs por equipe; 30 relatórios com 1 a 4 cenários e alguns links; e, para o PAINEL GERENCIAL,
 // 60 relatórios de histórico espalhados de nov/2025 a out/2026 (5 por mês), com 4 ambientes, os 3 status, os 4 tipos e
@@ -119,6 +119,22 @@ async function garantirUsuario(token, matricula, nome, perfil, equipes) {
   console.log(`  usuário ${matricula} (${perfil}): criado`);
 }
 
+// A área nasce sem equipes habilitadas (carga V015): habilita as equipes pela API, como o administrador faria (RN90 a RN93).
+async function habilitarEquipes(token, equipes) {
+  const atual = await chamar('GET', `/admin/metadados/grupos/${GRUPO}/equipes`, { token });
+  const habilitadas = new Set(atual.equipes.filter((e) => e.habilitada).map((e) => e.id));
+  if (equipes.every((id) => habilitadas.has(id))) {
+    console.log('  equipes já habilitadas na área');
+    return;
+  }
+  equipes.forEach((id) => habilitadas.add(id));
+  await chamar('PUT', `/admin/metadados/grupos/${GRUPO}/equipes`, {
+    token,
+    corpo: { versao: atual.versao, equipes: [...habilitadas] },
+  });
+  console.log('  Equipe Alfa e Equipe Beta habilitadas na área');
+}
+
 // ---- Execução ----
 
 async function principal() {
@@ -133,6 +149,7 @@ async function principal() {
   await garantirUsuario(token, 'dev.gestor', 'Gabriela Gestora', 'GESTOR', [alfa]);
   await garantirUsuario(token, 'dev.administrador', 'Augusto Administrador', 'ADMINISTRADOR', []);
   await garantirUsuario(token, 'dev.duas', 'Diana das Duas Equipes', 'INTERNO', [alfa, beta]);
+  await habilitarEquipes(token, [alfa, beta]);
 
   console.log('Cadastros de apoio (globais)');
   const comunidades = [];
@@ -229,7 +246,7 @@ async function principal() {
   }
 
   console.log('Relatórios, cenários e links');
-  const tipos = ['Carga', 'Estresse', 'Resistência', 'Pico'];
+  const tipos = ['API', 'API', 'API', 'WEB', 'Fila MQ']; // tecnologia (LISTA, V016)
   const pessoas = ['Ana Souza', 'Bruno Lima', 'Carla Dias', 'Diego Rocha'];
   for (let n = 1; n <= 30; n++) {
     const equipeId = n % 3 === 0 ? beta : alfa;
@@ -241,14 +258,15 @@ async function principal() {
     const relatorio = await garantir(
       token,
       'relatorio_teste',
-      'bateria_testes',
+      'titulo',
       {
+        titulo: bateria,
         projeto: projeto.id,
         rtc: umDe(rtcs),
         ambiente: umDe(ambientes),
         status_resultado: umDe(status),
         data_execucao: data.toISOString(),
-        bateria_testes: bateria,
+        bateria_testes: n,
         tipo_teste: umDe(tipos),
         executado_por: umDe(pessoas),
         contexto: `Execução ${n} do plano de testes de desempenho.`,
@@ -311,7 +329,7 @@ const umDeH = (lista) => lista[entreH(0, lista.length - 1)];
 
 /**
  * 60 relatórios com data de execução em cada um dos 12 meses de nov/2025 a out/2026 (5 por mês, datas FIXAS: rodar de novo
- * não duplica, porque cada um é procurado pelo nome da bateria antes de ser criado). Equipe Alfa em 2 de cada 3.
+ * não duplica, porque cada um é procurado pelo título antes de ser criado). Equipe Alfa em 2 de cada 3.
  */
 async function historicoDoPainel(token, { alfa, beta, porEquipe, ambientes, status }) {
   console.log('Histórico de 12 meses para o painel');
@@ -319,7 +337,7 @@ async function historicoDoPainel(token, { alfa, beta, porEquipe, ambientes, stat
     await garantir(token, 'ambiente', 'nome', { nome: 'Produção', servidor_gerenciador_filas: 'mq-prd.interno' })
   ).id;
   const todosAmbientes = [...ambientes, producao];
-  const tipos = ['Carga', 'Estresse', 'Resistência', 'Pico'];
+  const tipos = ['API', 'API', 'API', 'WEB', 'Fila MQ']; // tecnologia (LISTA, V016)
   const pessoas = ['Ana Souza', 'Bruno Lima', 'Carla Dias', 'Diego Rocha', 'Elisa Prado'];
 
   for (let mes = 0; mes < 12; mes++) {
@@ -338,14 +356,15 @@ async function historicoDoPainel(token, { alfa, beta, porEquipe, ambientes, stat
       const relatorio = await garantir(
         token,
         'relatorio_teste',
-        'bateria_testes',
+        'titulo',
         {
+          titulo: bateria,
           projeto: projeto.id,
           rtc: umDeH(rtcs),
           ambiente,
           status_resultado: umDeH([status[0], status[0], status[1], status[2]]),
           data_execucao: data.toISOString(),
-          bateria_testes: bateria,
+          bateria_testes: n,
           tipo_teste: umDeH(tipos),
           executado_por: umDeH(pessoas),
           contexto: `Execução mensal ${indice} do histórico de desempenho.`,
