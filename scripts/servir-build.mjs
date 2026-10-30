@@ -60,8 +60,9 @@ function servirArquivo(pedido, resposta) {
   const alvo = existe ? arquivo : join(raiz, 'index.html');
   resposta.writeHead(200, {
     'Content-Type': tipos[extname(alvo)] ?? 'application/octet-stream',
-    // index.html nunca em cache: um build novo vale na hora; os demais têm hash no nome.
-    'Cache-Control': existe && !alvo.endsWith('index.html') ? 'public, max-age=31536000, immutable' : 'no-store',
+    // index.html e config.json (BACK_API_URL, trocado pelo deploy sem mudar o nome) nunca em cache; os demais têm hash no nome.
+    'Cache-Control':
+      existe && !/(index\.html|config\.json)$/.test(alvo) ? 'public, max-age=31536000, immutable' : 'no-store',
   });
   createReadStream(alvo).pipe(resposta);
 }

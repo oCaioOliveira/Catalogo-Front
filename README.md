@@ -44,7 +44,22 @@ npm start                              # http://localhost:4200
 ```
 
 O `npm start` sobe o servidor de desenvolvimento com o **proxy** `proxy.conf.json`, que encaminha `/api` para `http://localhost:5080`.
-O front sempre chama caminhos relativos (`/api/v1/...`); se a API mudar de porta, mude só o `target` do proxy.
+Localmente, o front chama caminhos relativos (`/api/v1/...`); se a API mudar de porta, mude só o `target` do proxy.
+
+### URL da API no deploy (`BACK_API_URL`)
+
+A URL da API é lida **no navegador**, antes de qualquer requisição, do arquivo `config.json` publicado na raiz do site
+(`public/config.json` → **`dist/config.json`** no artefato do `npm run build`):
+
+```json
+{ "BACK_API_URL": "__BACK_API_URL__" }
+```
+
+O deploy substitui `__BACK_API_URL__` pela variável `BACK_API_URL`: a URL base da API, **sem** `/api/v1` (ex.:
+`https://catalogo.api.cegti.df.caixa`; a barra no fim é ignorada). Esse é o único arquivo do build com o marcador; ele não tem hash
+no nome e é lido sem cache. Com o marcador sem substituir (local) ou o arquivo ausente, o front usa caminhos relativos e o proxy.
+Todas as chamadas (cliente gerado, login, exportações, importações) partem dessa URL (`ApiConfiguration.rootUrl`, definido em
+`src/app/core/configuracao/configuracao-api.ts`). No back-end, o `CORS_ALLOW` precisa incluir a origem do front.
 
 Configurações do front (tamanhos de página) ficam em `src/environments/environment.ts`. Não há listagem nem tela inicial fixas:
 ao entrar, abre a última listagem usada (ou a primeira ativa), e a tela inicial dela vem dos metadados. **Listagens novas são criadas

@@ -1,6 +1,7 @@
 /**
- * Configurações do front num lugar só. Por enquanto só há execução local: a API é chamada por caminhos
- * relativos (/api/v1/...) e o `npm start` encaminha /api para ela pelo proxy (proxy.conf.json).
+ * Configurações do front num lugar só. A URL da API NÃO fica aqui (este arquivo entra compilado no build): ela vem do
+ * `config.json` (BACK_API_URL), lido no navegador antes de qualquer requisição (core/configuracao/configuracao-api.ts). Sem ela
+ * (local), a API é chamada por caminhos relativos (/api/v1/...) e o `npm start` encaminha /api pelo proxy (proxy.conf.json).
  */
 export const environment = {
   // Não há listagem nem entidade fixas: a tela inicial vem dos metadados (ADR 0043).

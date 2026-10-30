@@ -1,6 +1,6 @@
 {
   "/api": {
-    "target": "__BACK_API_URL__",
+    "target": "http://localhost:5080",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "warn"
