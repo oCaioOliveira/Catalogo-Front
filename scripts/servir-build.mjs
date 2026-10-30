@@ -1,4 +1,4 @@
-// Serve o BUILD do front (dist/catalogo-frontend/browser) com o mesmo proxy do `npm start`: /api/... vai para a API local.
+// Serve o BUILD do front em dist/ com o mesmo proxy do `npm start`: /api/... vai para a API local.
 // Usado pelos E2E (playwright.config.ts → webServer): cada rodada testa exatamente o código compilado agora, sem depender do
 // watcher do `ng serve` (que, no WSL, às vezes perde alterações e serve código antigo). Sem dependências: só o Node.
 //   PORTA=4300 CATALOGO_API=http://localhost:5080 node scripts/servir-build.mjs
@@ -7,7 +7,7 @@ import { createServer, request } from 'node:http';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const raiz = fileURLToPath(new URL('../dist/catalogo-frontend/browser/', import.meta.url));
+const raiz = fileURLToPath(new URL('../dist/', import.meta.url));
 const porta = Number(process.env.PORTA ?? 4300);
 const api = new URL(process.env.CATALOGO_API ?? 'http://localhost:5080');
 
