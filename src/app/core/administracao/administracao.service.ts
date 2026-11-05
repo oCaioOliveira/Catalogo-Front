@@ -13,7 +13,6 @@ import {
   apiV1UsuariosIdGet,
   apiV1UsuariosIdHistoricoGet,
   apiV1UsuariosIdPut,
-  apiV1UsuariosIdRedefinirSenhaPost,
   apiV1UsuariosPost,
 } from '../../api/functions';
 import { ItemHistorico, PaginaDe } from '../registros/modelo-registro';
@@ -59,13 +58,9 @@ export class AdministracaoService {
     return usuarioAdminDeDto(await this.api.invoke(apiV1UsuariosIdGet, { id }));
   }
 
-  /** Cria o usuário e devolve a senha provisória (uma vez, RN25): quem chama a passa direto ao diálogo. */
-  async criarUsuario(
-    dados: DadosUsuario,
-    contexto?: HttpContext,
-  ): Promise<{ usuario: UsuarioAdmin; senhaProvisoria: string }> {
-    const criado = await this.api.invoke(apiV1UsuariosPost, { body: dados }, contexto);
-    return { usuario: usuarioAdminDeDto(criado.usuario ?? {}), senhaProvisoria: criado.senhaProvisoria ?? '' };
+  /** Cria o usuário pela matrícula do AD: sem senha, ele entra pelo login do Windows (RN23). */
+  async criarUsuario(dados: DadosUsuario, contexto?: HttpContext): Promise<UsuarioAdmin> {
+    return usuarioAdminDeDto(await this.api.invoke(apiV1UsuariosPost, { body: dados }, contexto));
   }
 
   async atualizarUsuario(id: string, dados: DadosUsuario, contexto?: HttpContext): Promise<UsuarioAdmin> {
@@ -74,11 +69,6 @@ export class AdministracaoService {
 
   async alterarAtivacaoUsuario(id: string, ativo: boolean, contexto?: HttpContext): Promise<UsuarioAdmin> {
     return usuarioAdminDeDto(await this.api.invoke(apiV1UsuariosIdAtivacaoPatch, { id, body: { ativo } }, contexto));
-  }
-
-  /** Nova senha provisória (uma vez): quem chama a passa direto ao diálogo. */
-  async redefinirSenha(id: string): Promise<string> {
-    return (await this.api.invoke(apiV1UsuariosIdRedefinirSenhaPost, { id })).senhaProvisoria ?? '';
   }
 
   async historicoUsuario(id: string, pagina: number, tamanho: number): Promise<PaginaDe<ItemHistorico>> {

@@ -1,29 +1,63 @@
 import { Locator, Page, expect } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { tokenDe, UsuarioDev } from './api';
+import { tokenDaMatricula, tokenDe, UsuarioDev } from './api';
 
-/** Abre o front já logado como o usuário (o token vai para o sessionStorage, como faz o login, ADR 0035). */
+export const URL_LOGIN = '**/api/v1/auth/login';
+
+/**
+ * Simula o login pelo Windows (RN23, ADR 0054): o POST /auth/login responde com o token informado, como a API responderia ao
+ * usuário do Windows. Não há Windows nos E2E; o token é um JWT de verdade do banco local (api.ts), e o resto da API é o real.
+ * Vale para a página até o fim do teste (recarregar e navegar entram de novo com o mesmo usuário).
+ */
+export async function simularLoginWindows(page: Page, token: string): Promise<void> {
+  await page.unroute(URL_LOGIN);
+  await page.route(URL_LOGIN, (rota) =>
+    rota.fulfill({ status: 200, json: { token, expiraEm: new Date(Date.now() + 8 * 3600_000).toISOString() } }),
+  );
+}
+
+/** Simula o navegador sem credencial do Windows: o login responde 401 (como a API), e o front mostra a tela de acesso. */
+export async function simularSemWindows(page: Page): Promise<void> {
+  await page.unroute(URL_LOGIN);
+  await page.route(URL_LOGIN, (rota) =>
+    rota.fulfill({ status: 401, headers: { 'WWW-Authenticate': 'Negotiate' }, json: { codigo: 'NAO_AUTENTICADO' } }),
+  );
+}
+
+/** Abre o front já logado como o usuário de exemplo (login pelo Windows simulado). */
 export async function entrarComo(page: Page, usuario: UsuarioDev, caminho = '/'): Promise<void> {
-  await page.addInitScript((token) => sessionStorage.setItem('catalogo.token', token), tokenDe(usuario));
-  await page.goto(caminho);
-  await expect(botaoMenuUsuario(page)).toBeVisible();
+  await entrarComToken(page, tokenDe(usuario), caminho);
 }
 
 /** O mesmo que entrarComo, com o token de um usuário criado no próprio teste. */
 export async function entrarComToken(page: Page, token: string, caminho = '/'): Promise<void> {
-  await page.addInitScript((t) => sessionStorage.setItem('catalogo.token', t), token);
+  await simularLoginWindows(page, token);
+  // A tela inicial é a última área usada (ou a primeira por nome): os testes partem de Testes de Desempenho, qualquer que seja o
+  // resto do banco local. Se o teste trocar de área, a troca vale (só preenche quando ainda não há área guardada).
+  await page.addInitScript((area) => {
+    try {
+      localStorage.getItem('catalogo.ultimaListagem') ?? localStorage.setItem('catalogo.ultimaListagem', area);
+    } catch {
+      // Sem localStorage: vale a primeira área.
+    }
+  }, 'testes_desempenho');
   await page.goto(caminho);
   await expect(botaoMenuUsuario(page)).toBeVisible();
 }
 
-/** O avatar do cabeçalho, que abre o menu do usuário (Minha conta, Trocar senha, Tema e Sair). Indica que a pessoa está logada. */
+/** Entra como a matrícula (ex.: um usuário criado no teste), pelo login do Windows simulado. */
+export async function entrarComoMatricula(page: Page, matricula: string, caminho = '/'): Promise<void> {
+  await entrarComToken(page, tokenDaMatricula(matricula), caminho);
+}
+
+/** O avatar do cabeçalho, que abre o menu do usuário (Minha conta, Tema e Sair). Indica que a pessoa está logada. */
 export function botaoMenuUsuario(page: Page): Locator {
   return page.getByRole('button', { name: /^Menu do usuário/ });
 }
 
-/** Abre o menu do usuário e clica num item dele ("Minha conta", "Trocar senha", "Sair"). */
-export async function noMenuDoUsuario(page: Page, item: 'Minha conta' | 'Trocar senha' | 'Sair'): Promise<void> {
+/** Abre o menu do usuário e clica num item dele ("Minha conta", "Sair"). */
+export async function noMenuDoUsuario(page: Page, item: 'Minha conta' | 'Sair'): Promise<void> {
   await botaoMenuUsuario(page).click();
   const menu = page.getByRole('dialog', { name: 'Menu do usuário' });
   await expect(menu).toBeVisible();
@@ -84,6 +118,13 @@ export function campoSelecao(escopo: Escopo, nome: string | RegExp): Locator {
   return escopo.getByRole('combobox', { name: nome });
 }
 
+/** Escolhe uma opção num campo LISTA (p-select): abre o combobox e clica na opção. */
+export async function escolherOpcao(escopo: Escopo, nome: string | RegExp, opcao: string): Promise<void> {
+  await campoSelecao(escopo, nome).click();
+  const pagina = 'page' in escopo ? escopo.page() : escopo;
+  await pagina.getByRole('option', { name: opcao, exact: true }).click();
+}
+
 /** Escolhe uma opção num select de referência (p-autocomplete): digita, espera a lista do servidor e clica. */
 export async function escolherReferencia(
   escopo: Escopo,
@@ -106,30 +147,4 @@ export async function digitarData(escopo: Escopo, nome: string | RegExp, texto: 
   await campo.click();
   await campo.pressSequentially(texto, { delay: 20 });
   await campo.press('Tab');
-}
-
-/**
- * Login PELA TELA (para usuários criados no teste, que não têm token guardado). O login da API aceita 10 tentativas por minuto
- * (RN23): se a tela avisar, espera o minuto passar e tenta de novo.
- */
-export async function entrarPelaTela(page: Page, matricula: string, senha: string): Promise<void> {
-  for (let tentativa = 1; tentativa <= 2; tentativa++) {
-    await page.goto('/login');
-    await page.getByLabel('Matrícula').fill(matricula);
-    await page.locator('#senha').fill(senha);
-    await page.getByRole('button', { name: 'Entrar' }).click();
-    const limite = page.getByText('Muitas tentativas de login');
-    const resultado = await Promise.race([
-      limite.waitFor({ timeout: 15_000 }).then(() => 'limite' as const),
-      page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 15_000 }).then(() => 'entrou' as const),
-      page
-        .getByText('Matrícula ou senha inválidas.')
-        .waitFor({ timeout: 15_000 })
-        .then(() => 'recusado' as const),
-    ]).catch(() => 'tempo' as const);
-    if (resultado !== 'limite') {
-      return;
-    }
-    await page.waitForTimeout(61_000);
-  }
 }

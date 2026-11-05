@@ -19,6 +19,7 @@ const ROTAS_FORA_DE_AREA = new Set([
   'nao-encontrado',
   'sem-listagens',
   'sem-permissao',
+  'acesso',
   'login',
   'trocar-senha',
 ]);

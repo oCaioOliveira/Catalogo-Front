@@ -9,7 +9,7 @@ import { lerProblema } from './problema';
 /**
  * Mostra um toast com a mensagem amigável de qualquer erro da API (mapa em mensagens-erro.ts). Ficam de fora:
  *   - os status que a chamada pediu para tratar sozinha (STATUS_TRATADOS_PELO_COMPONENTE, ex.: 400 no formulário);
- *   - 401 e a troca de senha obrigatória, que o interceptor de autenticação resolve indo para outra tela;
+ *   - 401, que o interceptor de autenticação resolve indo para a tela de acesso (que entra de novo pelo Windows);
  *   - as requisições de fundo (contadores, badges), marcadas com `silencioso()`: falham sem aviso.
  * Erros 5xx mostram o traceId, para o usuário informar ao suporte. O erro continua para quem chamou.
  */
@@ -24,8 +24,7 @@ export const erroInterceptor: HttpInterceptorFn = (requisicao, proximo) => {
         !requisicao.context.get(STATUS_TRATADOS_PELO_COMPONENTE).includes(erro.status)
       ) {
         const problema = lerProblema(erro);
-        const resolvidoPeloLogin = problema.status === 401 || problema.codigo === 'TROCA_DE_SENHA_OBRIGATORIA';
-        if (!resolvidoPeloLogin) {
+        if (problema.status !== 401) {
           const suporte =
             problema.status >= 500 && problema.traceId ? `Código para o suporte: ${problema.traceId}` : undefined;
           mensagens.add({

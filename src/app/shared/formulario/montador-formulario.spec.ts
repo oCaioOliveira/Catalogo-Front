@@ -8,6 +8,7 @@ import {
   marcarUnicidade,
   montarFormulario,
   preservarValores,
+  textoResumoErros,
 } from './montador-formulario';
 import { mensagensDeErro } from './validadores';
 
@@ -188,5 +189,13 @@ describe('montador-formulario', () => {
     );
     expect(marcarUnicidade(formulario, problema)).toEqual(['nome', 'metodo']);
     expect(mensagensDeErro(formulario.controls['metodo'].errors)).toEqual(['Valor repetido.']);
+  });
+});
+
+describe('textoResumoErros', () => {
+  it('diz quantos campos corrigir, no singular ou no plural', () => {
+    expect(textoResumoErros(1)).toBe('Corrija o campo destacado:');
+    expect(textoResumoErros(7)).toBe('Corrija os 7 campos destacados:');
+    expect(textoResumoErros(0)).toBe('Corrija os campos destacados.');
   });
 });

@@ -1,14 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  inject,
-  input,
-  signal,
-  untracked,
-  viewChild,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { Button } from 'primeng/button';
 import { Skeleton } from 'primeng/skeleton';
@@ -23,12 +13,11 @@ import { CarregarHistorico, HistoricoComponent } from '../../../shared/historico
 import { AcoesAdministracaoService } from '../comum/acoes-usuario.service';
 import { severidadePerfil } from '../comum/apresentacao';
 import { nomeCampoAdministracao, valorAdministracao } from '../comum/historico-administracao';
-import { SenhaProvisoriaDialogComponent } from '../comum/senha-provisoria-dialog.component';
 import { DESCRICOES_PERFIL } from '../modelo/perfis';
 import { situacaoDoUsuario } from '../modelo/situacao';
 import { CabecalhoPaginaComponent } from '../../../shared/pagina/cabecalho-pagina.component';
 
-/** /configuracoes/usuarios/:id — dados, situação, equipes (com link) e o Histórico (sem nenhum valor de senha, RN32). */
+/** /configuracoes/usuarios/:id — dados, situação, equipes (com link) e o Histórico (RN32). */
 @Component({
   selector: 'app-detalhe-usuario',
   imports: [
@@ -43,7 +32,6 @@ import { CabecalhoPaginaComponent } from '../../../shared/pagina/cabecalho-pagin
     Tabs,
     Tag,
     HistoricoComponent,
-    SenhaProvisoriaDialogComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './detalhe-usuario.component.html',
@@ -54,7 +42,6 @@ export class DetalheUsuarioComponent {
   private readonly administracao = inject(AdministracaoService);
   private readonly acoes = inject(AcoesAdministracaoService);
   private readonly router = inject(Router);
-  private readonly dialogoSenha = viewChild.required(SenhaProvisoriaDialogComponent);
 
   readonly usuario = signal<UsuarioAdmin | null>(null);
   readonly nomesDasEquipes = signal<ReadonlyMap<string, string>>(new Map());
@@ -63,7 +50,7 @@ export class DetalheUsuarioComponent {
 
   readonly situacao = computed(() => {
     const usuario = this.usuario();
-    return usuario ? situacaoDoUsuario(usuario, new Date()) : null;
+    return usuario ? situacaoDoUsuario(usuario) : null;
   });
   readonly carregarHistorico = computed<CarregarHistorico>(() => {
     const id = this.id();
@@ -96,16 +83,6 @@ export class DetalheUsuarioComponent {
       this.nomesDasEquipes.set(new Map(equipes.map((e) => [e.id, e.nome])));
     } catch {
       void this.router.navigate(['/configuracoes/usuarios']);
-    }
-  }
-
-  async redefinirSenha(): Promise<void> {
-    const usuario = this.usuario();
-    const senha = usuario ? await this.acoes.redefinirSenha(usuario) : null;
-    if (usuario && senha) {
-      this.dialogoSenha().mostrar(senha, `${usuario.nome} (${usuario.matricula})`);
-      this.versao.update((v) => v + 1);
-      void this.carregar(usuario.id);
     }
   }
 

@@ -12,7 +12,7 @@ import { INTERVALO_CONTADOR_MS, PendentesService } from './pendentes.service';
 class TelaVazia {}
 
 function usuario(perfil: Perfil, id = `u-${perfil}`): UsuarioLogado {
-  return { id, matricula: id, nome: id, perfil, deveTrocarSenha: false, equipes: [{ id: 'e1', nome: 'Equipe' }] };
+  return { id, matricula: id, nome: id, perfil, equipes: [{ id: 'e1', nome: 'Equipe' }] };
 }
 
 function area(chave: string): Listagem {

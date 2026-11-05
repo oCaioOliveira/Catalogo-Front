@@ -6,7 +6,7 @@ import { MessageService } from 'primeng/api';
 import { firstValueFrom } from 'rxjs';
 import { silencioso, tratarNoComponente } from '../erros/contexto-erros';
 import { erroInterceptor } from '../erros/erro.interceptor';
-import { authInterceptor } from './auth.interceptor';
+import { URL_LOGIN, authInterceptor } from './auth.interceptor';
 import { AuthService } from './auth.service';
 
 describe('interceptors de autenticação e de erros', () => {
@@ -32,7 +32,7 @@ describe('interceptors de autenticação e de erros', () => {
     auth = TestBed.inject(AuthService);
     mensagens = TestBed.inject(MessageService);
     auth.token.set('token-123');
-    auth.usuario.set({ id: 'u', matricula: 'm', nome: 'n', perfil: 'INTERNO', deveTrocarSenha: false, equipes: [] });
+    auth.usuario.set({ id: 'u', matricula: 'm', nome: 'n', perfil: 'INTERNO', equipes: [] });
     spyOn(router, 'navigate').and.resolveTo(true);
     spyOn(mensagens, 'add');
   });
@@ -57,27 +57,39 @@ describe('interceptors de autenticação e de erros', () => {
     requisicao.flush([]);
   });
 
-  it('401: limpa a sessão e vai para o login com o returnUrl, sem toast', async () => {
+  it('o login vai com as credenciais do Windows (withCredentials) e sem o token', () => {
+    http.post(URL_LOGIN, null).subscribe();
+    const requisicao = controle.expectOne(URL_LOGIN);
+    expect(requisicao.request.withCredentials).toBeTrue();
+    expect(requisicao.request.headers.has('Authorization')).toBeFalse();
+    expect(requisicao.request.body).toBeNull();
+    requisicao.flush({ token: 't' });
+  });
+
+  it('as demais chamadas não mandam credenciais', () => {
+    http.get('/api/v1/grupos').subscribe();
+    const requisicao = controle.expectOne('/api/v1/grupos');
+    expect(requisicao.request.withCredentials).toBeFalse();
+    requisicao.flush([]);
+  });
+
+  it('401: limpa a sessão e vai para a tela de acesso com o returnUrl, sem toast', async () => {
     await chamarComErro(401, { codigo: 'NAO_AUTENTICADO' });
     expect(auth.token()).toBeNull();
     expect(auth.usuario()).toBeNull();
     expect(router.navigate).toHaveBeenCalledWith(
-      ['/login'],
+      ['/acesso'],
       jasmine.objectContaining({ queryParams: jasmine.any(Object) }),
     );
     expect(mensagens.add).not.toHaveBeenCalled();
   });
 
-  it('401 do próprio login não é sessão expirada', async () => {
-    await chamarComErro(401, { codigo: 'CREDENCIAIS_INVALIDAS' }, '/api/v1/auth/login', tratarNoComponente(401));
+  it('401 do próprio login não é sessão expirada: quem trata é o AuthService', async () => {
+    const pedido = firstValueFrom(http.post(URL_LOGIN, null, { context: silencioso() }));
+    controle.expectOne(URL_LOGIN).flush({ codigo: 'NAO_AUTENTICADO' }, { status: 401, statusText: 'x' });
+    await expectAsync(pedido).toBeRejected();
     expect(router.navigate).not.toHaveBeenCalled();
     expect(auth.token()).toBe('token-123');
-  });
-
-  it('403 TROCA_DE_SENHA_OBRIGATORIA: vai para a troca de senha', async () => {
-    await chamarComErro(403, { codigo: 'TROCA_DE_SENHA_OBRIGATORIA' });
-    expect(router.navigate).toHaveBeenCalledWith(['/trocar-senha']);
-    expect(mensagens.add).not.toHaveBeenCalled();
   });
 
   it('outros erros viram toast; 5xx mostra o traceId', async () => {
@@ -98,7 +110,7 @@ describe('interceptors de autenticação e de erros', () => {
     expect(mensagens.add).not.toHaveBeenCalled();
   });
 
-  it('requisição de fundo com 401 ainda leva ao login', async () => {
+  it('requisição de fundo com 401 ainda leva à tela de acesso', async () => {
     await chamarComErro(401, { codigo: 'NAO_AUTENTICADO' }, '/api/v1/aprovacoes/pendentes', silencioso());
     expect(auth.token()).toBeNull();
     expect(router.navigate).toHaveBeenCalled();

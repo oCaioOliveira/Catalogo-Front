@@ -7,8 +7,10 @@ import { defineConfig, devices } from '@playwright/test';
  * Por padrão, o front testado é um BUILD novo (npm run build), servido na porta 4300 por scripts/servir-build.mjs, com o mesmo
  * proxy de /api do `npm start`: cada rodada testa exatamente o código atual (o watcher do `ng serve` no WSL às vezes perde
  * alterações e serve código antigo).
- *   CATALOGO_ADMIN_SENHA=... CATALOGO_SENHA_DEV=... npm run e2e            # build + servidor estático (4300)
- *   CATALOGO_ADMIN_SENHA=... CATALOGO_SENHA_DEV=... npm run e2e:ng-serve   # contra o `npm start` (4200), no desenvolvimento
+ *   npm run e2e            # build + servidor estático (4300)
+ *   npm run e2e:ng-serve   # contra o `npm start` (4200), no desenvolvimento
+ * Não há Windows nos E2E: o login (POST /auth/login) é simulado no navegador com um JWT de verdade do banco local
+ * (tools/token-local.mjs, e2e/apoio/sessao.ts). O resto da API é o real.
  * E2E_SEM_BUILD=1 reaproveita o build que já está em dist/ (rodadas seguidas de um arquivo só, sem mudança no front).
  */
 const comNgServe = !!process.env['E2E_NG_SERVE'];
@@ -20,7 +22,7 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
-  // Um de cada vez: os testes compartilham o banco local e o limite de logins da API (10 por minuto).
+  // Um de cada vez: os testes compartilham o banco local.
   workers: 1,
   retries: 0,
   reporter: [['list'], ['html', { open: 'never' }]],

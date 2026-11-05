@@ -18,9 +18,6 @@ export interface UsuarioAdmin {
   nome: string;
   perfil: Perfil;
   ativo: boolean;
-  deveTrocarSenha: boolean;
-  /** UTC ("...Z"): bloqueado por tentativas até esse instante (RN24). Nulo ou no passado = não bloqueado. */
-  bloqueadoAte: string | null;
   ultimoAcessoEm: string | null;
   criadoEm: string;
   equipes: EquipeDoUsuario[];
@@ -44,8 +41,6 @@ export function usuarioAdminDeDto(dto: UsuarioDto): UsuarioAdmin {
     nome: dto.nome ?? '',
     perfil: (dto.perfil ?? 'EXTERNO') as Perfil,
     ativo: dto.ativo ?? true,
-    deveTrocarSenha: dto.deveTrocarSenha ?? false,
-    bloqueadoAte: dto.bloqueadoAte ?? null,
     ultimoAcessoEm: dto.ultimoAcessoEm ?? null,
     criadoEm: dto.criadoEm ?? '',
     equipes: (dto.equipes ?? []).map((e) => ({ id: e.id ?? '', nome: e.nome ?? '', ativa: e.ativa ?? true })),

@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { anonimoGuard, autenticadoGuard } from './core/auth/auth.guard';
-import { sessaoGuard } from './core/auth/sessao.guard';
 import { LayoutComponent } from './core/layout/layout.component';
 import { rotaAntigaGuard } from './core/layout/rota-antiga.guard';
 import { listagemAtualGuard, telaInicialGuard } from './core/metadados/tela-inicial.guard';
@@ -9,7 +8,7 @@ import { configuracaoEquipeGuard } from './core/permissoes/configuracao-equipe.g
 import { painelGuard } from './core/permissoes/painel.guard';
 
 /**
- * Rotas. Só o login é público. Na interface, o grupo se chama ÁREA DE GESTÃO (docs/glossario.md); no código e nas rotas, continua
+ * Rotas. Só a tela de acesso (/acesso) é pública. Na interface, o grupo se chama ÁREA DE GESTÃO (docs/glossario.md); no código e nas rotas, continua
  * sendo `grupo`.
  *
  *   - /:grupo: a página Início da área; /:grupo/:entidade/...: as telas GENÉRICAS de registros (features/registros/registros.routes.ts).
@@ -22,19 +21,16 @@ import { painelGuard } from './core/permissoes/painel.guard';
  */
 export const routes: Routes = [
   {
-    path: 'login',
+    // Sem tela de login: o login é o do Windows (RN23, ADR 0054). Esta tela só aparece sem sessão (acesso negado, indisponível
+    // ou depois de Sair) e, sem falha anterior, entra sozinha.
+    path: 'acesso',
     canActivate: [anonimoGuard],
-    title: 'Entrar · Catálogo',
-    loadComponent: () => import('./features/auth/login/login.component').then((m) => m.LoginComponent),
+    title: 'Acesso · Catálogo',
+    loadComponent: () => import('./features/auth/acesso/acesso.component').then((m) => m.AcessoComponent),
   },
-  {
-    // Fora do layout: com a troca pendente, a API recusa tudo (menu, metadados) até a senha ser trocada.
-    path: 'trocar-senha',
-    canActivate: [sessaoGuard],
-    title: 'Trocar senha · Catálogo',
-    loadComponent: () =>
-      import('./features/auth/trocar-senha/trocar-senha.component').then((m) => m.TrocarSenhaComponent),
-  },
+  // Endereços antigos (login por senha e troca de senha) levam à tela inicial.
+  { path: 'login', redirectTo: '' },
+  { path: 'trocar-senha', redirectTo: '' },
   {
     path: '',
     component: LayoutComponent,

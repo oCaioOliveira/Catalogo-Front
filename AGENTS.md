@@ -46,8 +46,8 @@ primeiro (com testes e o `openapi/v1.json` revisado) e depois chega aqui pela c�
 3. **Áreas de gestão (metadados) são criadas e alteradas pela interface** (Configurações → Áreas de gestão,
    [`docs/guias/criar-uma-listagem.md`](docs/guias/criar-uma-listagem.md)) ou pela API, pelo administrador; nunca por código do
    front. Uma área de gestão nova só aparece para as equipes que o administrador habilitar nela (RN90 a RN93, ADR 0046).
-4. **Nunca coloque segredos em arquivos versionados**: senhas vêm de variáveis de ambiente (`CATALOGO_ADMIN_SENHA`,
-   `CATALOGO_SENHA_DEV`).
+4. **Nunca coloque segredos em arquivos versionados.** Não há senha: o login é o do Windows (ADR 0054, no back-end). O token dos
+   E2E e do `dados-dev` sai do banco local (`tools/token-local.mjs`), nunca de arquivo.
 5. **Domínio em português**: nomes, mensagens, documentação e testes.
 6. **Na interface, sempre os termos da coluna "Na tela"** do [glossário](docs/glossario.md): "Área de gestão" (no código, grupo),
    "Tipo de item" (entidade), "Item" (registro). O código, o banco e a API mantêm os nomes antigos. O nome do sistema na tela é
@@ -77,7 +77,7 @@ conveniência; a API decide e valida de novo.
 | `src/app/api/` | **GERADO** a partir do `openapi/v1.json` (`npm run gerar-api`). **Nunca edite à mão** ([ADR 0036](docs/adr/0036-cliente-gerado-do-openapi.md)) |
 | `src/app/core/` | importação de planilhas (`importacao/`: serviço e tipos), autenticação (`auth/`: serviço, interceptor, guards), erros (`erros/`: interceptor e o mapa `codigo → mensagem`), metadados (`metadados/`: serviço, tipos e regras puras), permissões (e os guards `painelGuard` e `administracaoGuard`), `RegistrosService` (acesso aos registros), `PainelService` (`painel/`), `AdministracaoService` (`administracao/`), aprovação (`aprovacao/`: serviço, contador de pendentes e regras) e avaliação (`avaliacao/`: serviço, modelo e regras) e o layout |
 | `src/app/shared/` | o que é usado por várias telas: um componente de campo **por tipo** (`campos/`), o formulário genérico (`formulario/`), a exibição de um valor em leitura, igual na tabela e no detalhe (`exibicao/`), a trilha sobre o `p-breadcrumb` (`navegacao/`), a densidade das tabelas (`tabelas/`), o histórico genérico (`historico/`), formatação pt-BR e datas, acessibilidade |
-| `src/app/features/` | as telas, carregadas sob demanda: `auth/` (login, troca de senha), `registros/` (listagem, filtros, detalhe, páginas do formulário), `painel/` (painel gerencial e análise personalizada), `administracao/` (áreas de gestão, usuários e equipes), `configuracoes-equipe/` (aprovação e modelos de avaliação por equipe), `aprovacao/` (a fila), `conta/` (Minha conta), `nao-encontrado/`, `sem-permissao/`, `inicio/` (página Início da área), `sem-listagens/` (nenhuma área de gestão para as equipes do usuário), `importacao/` (assistente de importação de planilhas e importações anteriores) |
+| `src/app/features/` | as telas, carregadas sob demanda: `auth/` (a tela de acesso: acesso negado, indisponível, depois de Sair; não há tela de login), `registros/` (listagem, filtros, detalhe, páginas do formulário), `painel/` (painel gerencial e análise personalizada), `administracao/` (áreas de gestão, usuários e equipes), `configuracoes-equipe/` (aprovação e modelos de avaliação por equipe), `aprovacao/` (a fila), `conta/` (Minha conta), `nao-encontrado/`, `sem-permissao/`, `inicio/` (página Início da área), `sem-listagens/` (nenhuma área de gestão para as equipes do usuário), `importacao/` (assistente de importação de planilhas e importações anteriores) |
 | `src/app/tema/` | `tema.ts` (paleta da CAIXA, neutros, `PALETA_GRAFICOS`: **único lugar de valores de cor**), `fundamentos.scss` (tokens `--cor-*`, `--espaco-*`...), `marca.ts` (**caminho da logo**, num lugar só), `logo-marca.component.ts`, `botao-tema.component.ts`, `tema.service.ts` e as traduções do PrimeNG |
 | `src/assets/marca/` | a logo da CAIXA em SVG: `caixa-logo.svg` (positiva, tema claro) e `caixa-logo-negativa.svg` (negativa, tema escuro). Ver [guia → Logo](docs/design/guia-de-interface.md#logo) |
 | `public/config.json`, `src/app/core/configuracao/` | URL da API (`BACK_API_URL`), lida no navegador antes de qualquer requisição; o deploy troca o marcador em `dist/config.json` (README, "URL da API no deploy"). Nunca escreva a URL da API no código |
@@ -247,14 +247,15 @@ usuários desativados, equipe desativada e tirada das áreas. Nunca toca nas equ
 - Nomes: use o `prefixoUnico()` (equipes `${prefixo} Squad`, `Equipe ${prefixo}`; matrículas `${prefixo.toLowerCase()}-…`).
 - A preparação global também chama o helper, e a **verificação final** (`e2e/apoio/verificacao-final.ts`) falha a execução se sobrar
   equipe ou usuário de teste ativo.
-- Usuários de teste com troca de senha e página logada: `e2e/apoio/usuarios-teste.ts` (`criarUsuarioDeTeste`, `abrirComo`).
+- Usuários de teste e página logada: `e2e/apoio/usuarios-teste.ts` (`criarUsuarioDeTeste`, `abrirComo`). O login pelo Windows é
+  simulado com `simularLoginWindows`/`entrarComo` (`e2e/apoio/sessao.ts`), com um JWT do banco local (`tools/token-local.mjs`).
 
 ## Administração e Minha conta
 
 Como funciona: [`docs/frontend.md` → "Administração de usuários e equipes"](docs/frontend.md#administração-de-usuários-e-equipes).
 
-- **A senha provisória nunca sai do diálogo** (`SenhaProvisoriaDialogComponent`, [ADR 0041](docs/adr/0041-senha-provisoria-exibida-uma-vez-sem-armazenamento.md)):
-  da resposta da API direto para ele; nada de guardar em serviço, signal de página, storage, URL, log ou toast. Fechar = descartar.
+- **Não há senha** (login pelo Windows, ADR 0054 no back-end): o usuário é cadastrado só pela matrícula do AD; matrícula nova entra
+  como EXTERNO sem equipe (RN105). O ADR 0041 (senha provisória) foi substituído.
 - Quem administra: `PermissoesService.podeAdministrar` (só ADMINISTRADOR, RN26) e o `administracaoGuard`. "Minha conta" é para todos.
 - Regras puras com teste em `features/administracao/modelo/` (equipes por perfil, situação, filtros na URL, aviso ao editar o próprio
   perfil, membros sem outra equipe ativa). Os erros da API são mostrados pelo `codigo` (`mensagens-erro.ts`), também nos formulários.
@@ -299,7 +300,7 @@ npm run e2e:ng-serve        # Playwright contra o `npm start` (4200), no desenvo
 **E2E sempre sobre um build** (`playwright.config.ts` → `scripts/servir-build.mjs`): o watcher do `ng serve` no WSL perde
 alterações e serve código antigo. Ao depurar com o `npm start`, se a tela não refletir o código, suba de novo ou use `--poll 2000`.
 `npx playwright test e2e/<arquivo>.spec.ts` também faz o build antes. Para repetir um arquivo sem mudar o front, use
-`E2E_SEM_BUILD=1`, que reaproveita o `dist/`. As senhas vêm de `CATALOGO_ADMIN_SENHA` e `CATALOGO_SENHA_DEV`.
+`E2E_SEM_BUILD=1`, que reaproveita o `dist/`. Não há senha: os tokens saem do banco local (`tools/token-local.mjs`).
 
 ## Definição de pronto
 

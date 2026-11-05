@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="446.9 272.95 296.8 296.8">
+  <!-- CAIXA "X" element (official brand pack, _COR/_MONO). Positive on light tabs, negative on dark tabs. -->
+  <style>
+    .azul { fill: #0066B3; }
+    .laranja { fill: #F7941D; }
+    @media (prefers-color-scheme: dark) { .azul { fill: #FFFFFF; } }
+  </style>
+  <polygon class="laranja" points="452.9,520.3 539.1,520.3 633.6,425.8 547.4,425.8"/>
+  <polygon class="laranja" points="651.5,321.7 614.1,359 643.2,416.2 737.7,321.7"/>
+  <polygon class="azul" points="508.8,321.6 595,321.6 643.2,416.2 557,416.2"/>
+  <polygon class="azul" points="576.5,482.9 633.6,425.8 681.7,520.3 595.5,520.3"/>
+</svg>

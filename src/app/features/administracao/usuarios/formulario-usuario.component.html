@@ -6,7 +6,7 @@
   ]"
   [titulo]="edicao() ? 'Editar usuário' : 'Novo usuário'"
   icone="pi-user"
-  [subtitulo]="edicao() ? null : 'O sistema gera uma senha provisória, mostrada uma única vez ao salvar.'"
+  [subtitulo]="edicao() ? null : 'Pela matrícula do AD: sem senha, a pessoa entra pelo login do Windows.'"
 />
 
 @if (carregando()) {
@@ -165,5 +165,3 @@
     </div>
   </form>
 }
-
-<app-senha-provisoria-dialog (fechado)="aoFecharSenha()" />

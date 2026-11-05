@@ -16,7 +16,7 @@ test('filtra por intervalo de data e por projeto, ordena por número e guarda tu
 
   await entrarComo(page, 'dev.gestor', '/testes_desempenho/relatorio_teste');
   await page.getByRole('button', { name: /^Filtros/ }).click();
-  await campo(page, 'Bateria de testes (contém)').fill(prefixo);
+  await campo(page, 'Título (contém)').fill(prefixo);
   await digitarData(page, 'Data de execução: de', '01/09/2026');
   await digitarData(page, 'Data de execução: até', '30/09/2026');
   await escolherReferencia(page, /^Projeto$/, 'Consultas', 'Consultas Alfa');
@@ -38,12 +38,12 @@ test('filtra por intervalo de data e por projeto, ordena por número e guarda tu
   await expect(campo(page, 'Data de execução: de')).toHaveValue('01/09/2026');
   await expect(campo(page, /^Projeto$/)).toHaveValue('Consultas Alfa');
 
-  // Ordenação por uma coluna numérica: os cenários do relatório, pela vazão.
+  // Ordenação por uma coluna numérica (entre as colunas padrão): os cenários do relatório, pelo tempo médio de resposta.
   const endpoint = await idPor(gestor, 'endpoint_servico', 'nome_servico', 'enviar-consultas-alfa');
-  for (const [numero, vazao] of [
-    [1, 30],
-    [2, 10],
-    [3, 20],
+  for (const [numero, tempo] of [
+    [1, 300],
+    [2, 100],
+    [3, 200],
   ]) {
     await criar(gestor, 'cenario_teste', {
       equipeId: c.equipe,
@@ -51,22 +51,22 @@ test('filtra por intervalo de data e por projeto, ordena por número e guarda tu
       endpoint_servico: endpoint,
       numero_cenario: numero,
       usuarios_virtuais: 100,
-      tempo_medio_resposta_ms: 200,
+      tempo_medio_resposta_ms: tempo,
       percentil_95_ms: 400,
-      vazao_media_tps: vazao,
+      vazao_media_tps: 10,
       taxa_erro_percentual: 1,
     });
   }
   await page.goto(`/testes_desempenho/cenario_teste?relatorio_teste=${esperado}`);
-  const coluna = page.getByRole('columnheader', { name: /Vazão média/ });
+  const coluna = page.getByRole('columnheader', { name: /^Tempo médio/ });
   await coluna.click();
-  await expect(page).toHaveURL(/ordenacao=vazao_media_tps/);
+  await expect(page).toHaveURL(/ordenacao=tempo_medio_resposta_ms/);
   const indice = await page
     .locator('thead th')
-    .evaluateAll((ths) => ths.findIndex((th) => th.textContent?.includes('Vazão média')));
+    .evaluateAll((ths) => ths.findIndex((th) => th.textContent?.trim().startsWith('Tempo médio')));
   const valores = page.locator(`tbody tr td:nth-child(${indice + 1})`);
-  await expect(valores).toHaveText(['10,00', '20,00', '30,00']);
+  await expect(valores).toHaveText(['100,00', '200,00', '300,00']);
   await coluna.click();
-  await expect(page).toHaveURL(/ordenacao=-vazao_media_tps/);
-  await expect(valores).toHaveText(['30,00', '20,00', '10,00']);
+  await expect(page).toHaveURL(/ordenacao=-tempo_medio_resposta_ms/);
+  await expect(valores).toHaveText(['300,00', '200,00', '100,00']);
 });

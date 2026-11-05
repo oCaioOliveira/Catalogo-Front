@@ -20,6 +20,10 @@ Componentes e estilos usam **só** `var(--cor-*)`, `var(--espaco-*)` etc. Nada d
   menu do usuário. Ao lado ficam o menu da área ou a área de configurações. A área atual vem só do `AreaAtualService`.
 - **Cabeçalho de página** (`shared/pagina/cabecalho-pagina.component.ts`): trilha, `<h1>` com ícone, subtítulo e ações. **Uma
   ação primária por tela.**
+- **Ações**: a ação principal da tela fica em destaque no cabeçalho ("Novo" na listagem, "Editar" no detalhe); as secundárias
+  ficam **sempre** no "⋯ Mais ações" ao lado dela (`shared/pagina/mais-acoes.component.ts`): importar, importações anteriores e
+  exportar na listagem; excluir no detalhe. Nas linhas de tabela, o "⋯" é o `menu-acoes-linha`. Exceção: na fila de aprovações, a
+  decisão é o trabalho da tela, e **Aprovar**/**Rejeitar** ficam visíveis em cada linha.
 - **Estados** (`shared/estados/`): `app-estado-vazio` (ícone, frase e ação) e `app-estado-erro` (mensagem humana e "Tentar de
   novo"). O carregamento usa `p-skeleton` no formato do conteúdo.
 - **Tabelas** (`shared/tabelas/`):
@@ -31,7 +35,9 @@ Componentes e estilos usam **só** `var(--cor-*)`, `var(--espaco-*)` etc. Nada d
 - **Formulários** (`shared/formulario/`, `shared/campos/`):
   - foco no primeiro campo (`appFocoInicial`);
   - rótulo associado a todo controle;
-  - erros ligados por `aria-describedby`;
+  - erros ligados por `aria-describedby`, embaixo de cada campo;
+  - ao tentar salvar com erros, o resumo no topo diz quantos são e lista os campos, cada um um link que leva ao campo
+    (`textoResumoErros`), e o foco vai para o primeiro campo com erro;
   - botão com verbo e objeto ("Salvar relatório de teste").
 - **Salvar sempre visível**: em listas ou formulários longos, a ação de salvar fica sempre visível.
   - **Lista editável longa** (ex.: aba Equipes da área de gestão): cabeçalho fixo `.barra-lista-fixa`, com título, contador,
@@ -55,8 +61,7 @@ Componentes e estilos usam **só** `var(--cor-*)`, `var(--espaco-*)` etc. Nada d
   - o E2E `ajustes-layout.spec.ts` mede isso.
 - **Exportar**: todo menu de exportação usa `itensExportacao(...)` (`shared/exportacao/opcoes-exportacao.ts`): "Planilha
   Excel (.xlsx)" primeiro e "Arquivo CSV (.csv)" com a dica. Não escreva os rótulos na tela.
-- **Importar**: nas listagens, o botão dividido "Importar" fica ao lado de "Exportar", para quem pode criar ali; a seta leva a
-  "Importações anteriores". O assistente (`features/importacao/`) é uma página com etapas visíveis (`p-stepper`), uma ação primária
+- **Importar**: nas listagens, "Importar planilha" e "Importações anteriores" ficam no "⋯ Mais ações", para quem pode criar ali. O assistente (`features/importacao/`) é uma página com etapas visíveis (`p-stepper`), uma ação primária
   por etapa na barra fixa do rodapé, e as células com erro da prévia têm fundo `--cor-perigo-suave`, borda e ícone (nunca só a cor).
 - **Diálogo × página**: criar um item relacionado é um diálogo de **um nível** ("+ Criar <Tipo>" no select de referência,
   `criar-relacionado.ts`). Todo o resto é página.

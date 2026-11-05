@@ -748,6 +748,32 @@ th.redimensionando {
   gap: var(--espaco-2);
 }
 
+// No celular, a densidade não faz diferença (a tabela rola de lado): some, e a barra cabe numa linha.
+@media (max-width: 599.98px) {
+  .barra-tabela app-alternar-densidade {
+    display: none;
+  }
+}
+
+// Fila de aprovações: Aprovar e Rejeitar na própria linha, sem quebrar.
+.coluna-decisao {
+  // Largura própria: nas tabelas de layout fixo, uma largura em % deixava a coluna sem espaço e os botões por baixo da vizinha.
+  width: 13.5rem;
+  min-width: 13.5rem;
+  white-space: nowrap;
+}
+
+.acoes-decisao {
+  display: flex;
+  gap: var(--espaco-1);
+  justify-content: flex-end;
+}
+
+// O item que está sendo decidido, no topo do diálogo de decisão.
+.alvo-decisao {
+  margin: 0 0 var(--espaco-2);
+}
+
 .total-tabela {
   color: var(--cor-texto-secundario);
   font-variant-numeric: tabular-nums;
@@ -967,6 +993,22 @@ p-dialog .formulario,
 .lista-erros-gerais {
   margin: 0;
   padding-left: var(--espaco-5);
+}
+
+// Resumo de erros do formulário: os campos com problema, cada um leva ao próprio campo (separados por vírgula, na mesma linha).
+.lista-campos-com-erro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-1) var(--espaco-3);
+  margin: var(--espaco-1) 0 0;
+  padding-left: var(--espaco-5);
+  list-style: none;
+
+  a {
+    color: inherit;
+    font-weight: var(--peso-titulo);
+    text-decoration: underline;
+  }
 }
 
 .texto-booleano {

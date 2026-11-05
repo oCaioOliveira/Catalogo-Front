@@ -7,8 +7,9 @@ import {
   campoSelecao,
   campoTexto,
   digitarData,
-  escolherReferencia,
   entrarComo,
+  escolherOpcao,
+  escolherReferencia,
 } from './apoio/sessao';
 import { UsuarioTeste, abrirComo, criarUsuarioDeTeste } from './apoio/usuarios-teste';
 
@@ -133,8 +134,11 @@ test('2. área atual única: na segunda área, Configurações da equipe já abr
 
 test('3. criar um RTC novo pelo select do relatório, sem sair do formulário', async ({ browser }) => {
   const pagina = await abrirComo(browser, gestor.token, `/${GRUPO}/relatorio_teste/novo`);
-  await campoTexto(pagina, /^Bateria de testes/).fill(BATERIA);
-  await campoTexto(pagina, /^Tipo de teste/).fill('Carga');
+  await campoTexto(pagina, /^Título/).fill(BATERIA);
+  await campoTexto(pagina, /^Nº da bateria/)
+    .or(pagina.getByRole('spinbutton', { name: /^Nº da bateria/ }))
+    .fill('1');
+  await escolherOpcao(pagina, /^Tecnologia/, 'API');
   await escolherReferencia(pagina, /^Projeto/, prefixo.slice(0, 6), `Projeto ${prefixo}`);
 
   // O RTC ainda não existe: "+ Criar RTC '…'", no fim da lista.
@@ -153,7 +157,7 @@ test('3. criar um RTC novo pelo select do relatório, sem sair do formulário', 
 
   // O formulário principal manteve o que já estava preenchido, e o RTC novo está escolhido.
   await expect(rtc).toHaveValue(RTC_NOVO);
-  await expect(campoTexto(pagina, /^Bateria de testes/)).toHaveValue(BATERIA);
+  await expect(campoTexto(pagina, /^Título/)).toHaveValue(BATERIA);
   await expect(campoSelecao(pagina, /^Projeto/)).toHaveValue(`Projeto ${prefixo}`);
 
   await escolherReferencia(pagina, /^Ambiente/, 'Homo', 'Homologação');
@@ -188,7 +192,7 @@ test('4. Início: "Continuar de onde parou" mostra o relatório e o RTC que o ge
 test('5. linha clicável e ações no "⋯": clicar em qualquer ponto abre o item; o menu da linha edita', async ({
   browser,
 }) => {
-  const lista = `/${GRUPO}/relatorio_teste?bateria_testes.contem=${encodeURIComponent(BATERIA)}`;
+  const lista = `/${GRUPO}/relatorio_teste?titulo.contem=${encodeURIComponent(BATERIA)}`;
   const pagina = await abrirComo(browser, gestor.token, lista);
   const linha = pagina.locator('tbody tr').first();
   await expect(pagina.locator('tbody tr')).toHaveCount(1);

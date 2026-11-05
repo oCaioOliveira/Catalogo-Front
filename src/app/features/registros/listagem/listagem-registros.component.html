@@ -3,6 +3,7 @@
     @if (permissoes.podeCriar(meta, minhasEquipes())) {
       <p-button acoes label="Novo" icon="pi pi-plus" [ariaLabel]="'Novo: ' + meta.nome" [routerLink]="['novo']" />
     }
+    <app-mais-acoes acoes [itens]="maisAcoes()" [ocupado]="exportando()" />
   </app-cabecalho-pagina>
   @if (semEquipes()) {
     <p-message severity="warn" styleClass="faixa-sem-equipes mb-3">
@@ -48,30 +49,6 @@
         (restaurar)="restaurarColunas()"
       />
       <app-alternar-densidade />
-      @if (permissoes.podeCriar(meta, minhasEquipes())) {
-        <p-splitbutton
-          label="Importar"
-          icon="pi pi-upload"
-          severity="secondary"
-          [outlined]="true"
-          appendTo="body"
-          [model]="itensImportar()"
-          [menuButtonProps]="{ ariaLabel: 'Mais opções de importação' }"
-          (onClick)="importar()"
-        />
-      }
-      @if (permissoes.podeExportar()) {
-        <p-button
-          label="Exportar"
-          icon="pi pi-download"
-          severity="secondary"
-          [outlined]="true"
-          [loading]="exportando()"
-          aria-haspopup="menu"
-          (onClick)="menuExportar.toggle($event)"
-        />
-        <p-menu #menuExportar [popup]="true" [model]="itensExportar" appendTo="body" />
-      }
     </div>
   </div>
 

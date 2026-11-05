@@ -46,6 +46,7 @@ import {
   marcarUnicidade,
   montarFormulario,
   preservarValores,
+  textoResumoErros,
 } from './montador-formulario';
 import { vazio } from './validadores';
 import { ValorCampo } from './valores';
@@ -133,6 +134,8 @@ export class FormularioRegistroComponent implements OnInit {
 
   readonly salvando = signal(false);
   readonly errosGerais = signal<string[]>([]);
+  /** Os campos com erro depois de tentar salvar, para o resumo: cada um leva ao próprio campo. */
+  readonly camposComErro = signal<{ id: string; nome: string }[]>([]);
   readonly conflitoConcorrencia = signal(false);
   readonly dadosCopiados = signal(false);
   /** Campos dependentes desabilitados porque a origem está vazia (chave → dica). */
@@ -291,12 +294,13 @@ export class FormularioRegistroComponent implements OnInit {
 
   async salvar(): Promise<void> {
     this.errosGerais.set([]);
+    this.camposComErro.set([]);
     // Tentou salvar: todos os erros aparecem (CampoFormularioComponent.mostrarErros).
     this.formulario.markAllAsTouched();
     Object.values(this.formulario.controls).forEach((c) => c.markAsDirty());
     this.equipe.markAsTouched();
     if (this.formulario.invalid || this.equipe.invalid) {
-      this.errosGerais.set(['Corrija os campos destacados.']);
+      this.resumirErros();
       this.focarPrimeiroErro();
       return;
     }
@@ -453,7 +457,11 @@ export class FormularioRegistroComponent implements OnInit {
       if (problema.erros['equipeId'] && this.mostrarSelectEquipe()) {
         this.equipe.setErrors({ servidor: problema.erros['equipeId'] });
       }
-      this.errosGerais.set(gerais.length > 0 ? gerais : ['Corrija os campos destacados.']);
+      if (gerais.length > 0) {
+        this.errosGerais.set(gerais);
+      } else {
+        this.resumirErros();
+      }
       this.focarPrimeiroErro();
     } else if (problema.codigo === 'CONFLITO_CONCORRENCIA') {
       this.conflitoConcorrencia.set(true);
@@ -496,6 +504,26 @@ export class FormularioRegistroComponent implements OnInit {
       'input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), [role="combobox"]:not([aria-disabled="true"])',
     );
     primeiro?.focus();
+  }
+
+  /** "Corrija os campos destacados", com a lista dos campos (equipe primeiro, depois na ordem do formulário). */
+  private resumirErros(): void {
+    const comErro = this.campos()
+      .filter((campo) => this.formulario.controls[campo.chave]?.invalid)
+      .map((campo) => ({ id: `${this.prefixoId()}-${campo.chave}`, nome: campo.nome }));
+    if (this.mostrarSelectEquipe() && this.equipe.invalid) {
+      comErro.unshift({ id: `${this.prefixoId()}-equipe`, nome: 'Equipe' });
+    }
+    this.camposComErro.set(comErro);
+    this.errosGerais.set([textoResumoErros(comErro.length)]);
+  }
+
+  /** Leva ao campo do resumo de erros (o foco vai para o controle, e a tela rola até ele). */
+  irParaCampo(id: string, evento: Event): void {
+    evento.preventDefault();
+    const alvo = this.elemento.nativeElement.querySelector<HTMLElement>(`#${CSS.escape(id)}`);
+    alvo?.scrollIntoView({ block: 'center' });
+    alvo?.focus();
   }
 
   private focarPrimeiroErro(): void {

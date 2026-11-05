@@ -1,6 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { Button } from 'primeng/button';
 import { Tag } from 'primeng/tag';
 import { AuthService } from '../../core/auth/auth.service';
 import { NOMES_PERFIL } from '../../core/auth/usuario';
@@ -10,12 +8,11 @@ import { CabecalhoPaginaComponent } from '../../shared/pagina/cabecalho-pagina.c
 
 /**
  * /minha-conta — para TODOS os perfis: matrícula, nome, perfil (com o que ele permite) e equipes do usuário logado
- * (GET /api/v1/auth/eu, já carregado), e "Trocar senha", que reaproveita a tela de troca (agora também voluntária) e volta para
- * cá com a mensagem de sucesso. A sessão continua depois da troca (RN25).
+ * (GET /api/v1/auth/eu, já carregado). Não há senha: o acesso é pelo login do Windows (RN23).
  */
 @Component({
   selector: 'app-minha-conta',
-  imports: [CabecalhoPaginaComponent, RouterLink, Button, Tag],
+  imports: [CabecalhoPaginaComponent, Tag],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (auth.usuario(); as usuario) {
@@ -23,16 +20,8 @@ import { CabecalhoPaginaComponent } from '../../shared/pagina/cabecalho-pagina.c
         [trilha]="[{ rotulo: 'Minha conta' }]"
         titulo="Minha conta"
         icone="pi-user"
-        subtitulo="Os seus dados de acesso. Para mudar nome, perfil ou equipes, fale com um administrador."
-      >
-        <p-button
-          acoes
-          label="Trocar senha"
-          icon="pi pi-key"
-          routerLink="/trocar-senha"
-          [queryParams]="{ returnUrl: '/minha-conta' }"
-        />
-      </app-cabecalho-pagina>
+        subtitulo="Os seus dados de acesso, pelo login do Windows. Para mudar nome, perfil ou equipes, fale com um administrador."
+      />
       <section class="formulario formulario-estreito" aria-label="Seus dados">
         <dl class="grade-leitura">
           <div>

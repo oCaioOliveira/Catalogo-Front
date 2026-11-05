@@ -2,7 +2,7 @@ import { Page, expect, test } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { GRUPO } from './apoio/api';
-import { entrarComo } from './apoio/sessao';
+import { entrarComo, simularSemWindows } from './apoio/sessao';
 
 /**
  * Medições de layout que já voltaram a quebrar (capturas em e2e/capturas/ajustes/):
@@ -126,9 +126,10 @@ test('abaixo de 1024 px, o nome sai e sobra uma barrinha só, entre a logo e o s
   await expect(page.locator('.cabecalho-app .separador-cabecalho:visible')).toHaveCount(1);
 });
 
-test('o nome do sistema aparece como "Catálogo" no título da aba e no login', async ({ page }) => {
-  await page.goto('/login');
-  await expect(page).toHaveTitle('Entrar · Catálogo');
+test('o nome do sistema aparece como "Catálogo" no título da aba e na tela de acesso', async ({ page }) => {
+  await simularSemWindows(page);
+  await page.goto('/acesso');
+  await expect(page).toHaveTitle('Acesso · Catálogo');
   await expect(page.getByText('Catálogo', { exact: true })).toBeVisible();
   await expect(page.getByText('Catalogo', { exact: true })).toHaveCount(0);
 });

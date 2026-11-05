@@ -3,7 +3,6 @@
 
 import { UsuarioLogadoDto } from '../models/usuario-logado-dto';
 export interface LoginDto {
-  deveTrocarSenha?: boolean;
   expiraEm?: string;
   token?: string | null;
   usuario?: UsuarioLogadoDto;

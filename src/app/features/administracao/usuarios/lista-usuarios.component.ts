@@ -1,13 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  inject,
-  signal,
-  untracked,
-  viewChild,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -27,7 +18,6 @@ import { cliqueAbreLinha } from '../../../shared/tabelas/colunas-tabela';
 import { environment } from '../../../../environments/environment';
 import { AcoesAdministracaoService } from '../comum/acoes-usuario.service';
 import { severidadePerfil } from '../comum/apresentacao';
-import { SenhaProvisoriaDialogComponent } from '../comum/senha-provisoria-dialog.component';
 import {
   FiltrosUsuarios,
   ORDENACAO_USUARIOS_PADRAO,
@@ -48,8 +38,7 @@ import { DataRelativaComponent } from '../../../shared/formatacao/data-relativa.
 
 /**
  * /configuracoes/usuarios — os usuários (só ADMINISTRADOR), em p-table lazy: busca por matrícula ou nome, filtros de perfil, equipe e
- * situação, página e ordenação NA URL (como a listagem de registros). Ações por linha: ver, redefinir senha (com o diálogo da
- * senha provisória) e ativar/desativar.
+ * situação, página e ordenação NA URL (como a listagem de registros). Ações por linha: ver, editar e ativar/desativar.
  */
 @Component({
   selector: 'app-lista-usuarios',
@@ -68,7 +57,6 @@ import { DataRelativaComponent } from '../../../shared/formatacao/data-relativa.
     Skeleton,
     TableModule,
     Tag,
-    SenhaProvisoriaDialogComponent,
     AlternarDensidadeComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -80,19 +68,17 @@ export class ListaUsuariosComponent {
   private readonly router = inject(Router);
   private readonly administracao = inject(AdministracaoService);
   private readonly acoes = inject(AcoesAdministracaoService);
-  private readonly dialogoSenha = viewChild.required(SenhaProvisoriaDialogComponent);
 
   private readonly parametrosUrl = toSignal(this.rota.queryParams, { initialValue: {} });
   readonly filtros = computed<FiltrosUsuarios>(() => filtrosUsuariosDaUrl(this.parametrosUrl()));
 
   readonly resultado = signal<PaginaDe<UsuarioAdmin> | null>(null);
-  /** As ações ("⋯") de cada linha: editar, redefinir a senha e ativar ou desativar. */
+  /** As ações ("⋯") de cada linha: editar e ativar ou desativar. */
   readonly acoesPorLinha = computed(() => {
     const mapa = new Map<string, MenuItem[]>();
     for (const usuario of this.resultado()?.itens ?? []) {
       mapa.set(usuario.id, [
         { label: 'Editar', icon: 'pi pi-pencil', routerLink: ['/configuracoes/usuarios', usuario.id, 'editar'] },
-        { label: 'Redefinir senha', icon: 'pi pi-key', command: () => void this.redefinirSenha(usuario) },
         usuario.ativo
           ? {
               label: 'Desativar',
@@ -125,7 +111,6 @@ export class ListaUsuariosComponent {
     const o = this.filtros().ordenacao;
     return { campo: o.replace(/^-/, ''), ordem: o.startsWith('-') ? -1 : 1 };
   });
-  readonly agora = signal(new Date());
 
   nomePerfil(usuario: UsuarioAdmin): string {
     return NOMES_PERFIL[usuario.perfil];
@@ -157,7 +142,6 @@ export class ListaUsuariosComponent {
     this.erro.set(false);
     try {
       this.resultado.set(await this.administracao.listarUsuarios(parametrosApiUsuarios(filtros)));
-      this.agora.set(new Date());
     } catch {
       this.erro.set(true);
     } finally {
@@ -170,7 +154,7 @@ export class ListaUsuariosComponent {
   }
 
   situacao(usuario: UsuarioAdmin) {
-    return situacaoDoUsuario(usuario, this.agora());
+    return situacaoDoUsuario(usuario);
   }
 
   pesquisar(): void {
@@ -217,15 +201,6 @@ export class ListaUsuariosComponent {
   abrir(usuario: UsuarioAdmin, evento: MouseEvent): void {
     if (cliqueAbreLinha(evento.target as Element, window.getSelection()?.toString() ?? '')) {
       void this.router.navigate([usuario.id], { relativeTo: this.rota });
-    }
-  }
-
-  async redefinirSenha(usuario: UsuarioAdmin): Promise<void> {
-    const senha = await this.acoes.redefinirSenha(usuario);
-    if (senha) {
-      // Direto para o diálogo: a senha não fica em nenhum outro lugar.
-      this.dialogoSenha().mostrar(senha, `${usuario.nome} (${usuario.matricula})`);
-      this.tentarDeNovo();
     }
   }
 

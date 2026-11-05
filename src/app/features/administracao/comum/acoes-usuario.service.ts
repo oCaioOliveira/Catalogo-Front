@@ -16,25 +16,6 @@ export class AcoesAdministracaoService {
   private readonly administracao = inject(AdministracaoService);
   private readonly auth = inject(AuthService);
 
-  /** Confirma e redefine: devolve a senha provisória para o diálogo (nulo = cancelou ou deu erro). */
-  async redefinirSenha(usuario: UsuarioAdmin): Promise<string | null> {
-    const confirmou = await this.confirmar({
-      cabecalho: 'Redefinir senha',
-      mensagem:
-        `Gerar uma nova senha provisória para ${usuario.nome} (${usuario.matricula})? A senha atual deixa de funcionar ` +
-        'na hora, e ele terá de trocar a nova no próximo acesso.',
-      aceitar: 'Redefinir senha',
-    });
-    if (!confirmou) {
-      return null;
-    }
-    try {
-      return await this.administracao.redefinirSenha(usuario.id);
-    } catch {
-      return null;
-    }
-  }
-
   /**
    * Ativa ou desativa, com confirmação. Desativar o PRÓPRIO usuário pede uma segunda confirmação. Devolve o usuário atualizado
    * (nulo = cancelou ou a API recusou).
@@ -45,7 +26,7 @@ export class AcoesAdministracaoService {
       ativo
         ? {
             cabecalho: 'Ativar usuário',
-            mensagem: `Ativar ${usuario.nome} (${usuario.matricula})? Ele volta a entrar no sistema com a senha atual.`,
+            mensagem: `Ativar ${usuario.nome} (${usuario.matricula})? Ele volta a entrar no sistema pelo login do Windows.`,
             aceitar: 'Ativar',
           }
         : {

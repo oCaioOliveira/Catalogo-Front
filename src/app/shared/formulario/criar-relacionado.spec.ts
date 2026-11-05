@@ -19,7 +19,6 @@ describe('criar item relacionado', () => {
       matricula: 'ana',
       perfil,
       equipes: [alfa, beta],
-      deveTrocarSenha: false,
     }) as UsuarioLogado;
   const rtc = entidade('rtc', [campo('rtc_externo_id', 'TEXTO', { tamanhoMaximo: 10 })], { nome: 'RTC' });
   const sigla = entidade('sigla', [campo('codigo', 'TEXTO')], { escopoEquipe: false });

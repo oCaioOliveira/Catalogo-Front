@@ -1,6 +1,6 @@
 # 0041. Senha provisória exibida uma vez, sem armazenamento no front
 
-- Status: Aceito
+- Status: Substituído pelo 0054 (back-end: login pelo Windows, sem senha)
 - Data: 2026-10-22
 
 ## Contexto

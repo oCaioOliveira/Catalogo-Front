@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { MenuItem } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Message } from 'primeng/message';
 import { Skeleton } from 'primeng/skeleton';
@@ -7,6 +8,7 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { PendentesService } from '../../../core/aprovacao/pendentes.service';
 import { AvaliacaoService } from '../../../core/avaliacao/avaliacao.service';
 import { CriterioAvaliacao } from '../../../core/avaliacao/modelo-avaliacao';
+import { tratarNoComponente } from '../../../core/erros/contexto-erros';
 import { lerProblema } from '../../../core/erros/problema';
 import { EquipeDaListagem, nomeDaEquipe } from '../../../core/metadados/listagens';
 import { MetadadosService } from '../../../core/metadados/metadados.service';
@@ -20,7 +22,9 @@ import { formatarDataHoraSistema } from '../../../shared/formatacao/formatar-val
 import { DataRelativaComponent } from '../../../shared/formatacao/data-relativa.component';
 import { EstadoErroComponent } from '../../../shared/estados/estado-erro.component';
 import { PassoTrilha } from '../../../shared/navegacao/trilha.component';
+import { EstadoVazioComponent } from '../../../shared/estados/estado-vazio.component';
 import { CabecalhoPaginaComponent } from '../../../shared/pagina/cabecalho-pagina.component';
+import { MaisAcoesComponent } from '../../../shared/pagina/mais-acoes.component';
 import { ExclusaoService } from '../comum/exclusao.service';
 import { leituraDoRegistro, listaDeNomes } from '../comum/leitura-registro';
 import { rotuloDoRegistro } from '../comum/rotulos';
@@ -61,6 +65,8 @@ import { SecaoRelacionada, chaveEstadoSecoes, lerEstadoSecoes, montarSecoes, sec
     CabecalhoPaginaComponent,
     DataRelativaComponent,
     EstadoErroComponent,
+    EstadoVazioComponent,
+    MaisAcoesComponent,
     ValorCampoComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -105,6 +111,14 @@ export class DetalheRegistroComponent {
   /** O endereço deste detalhe: "Novo …" das seções volta para cá. */
   readonly enderecoDetalhe = computed(() => `/${this.grupo()}/${this.entidade()}/${this.id()}`);
   readonly equipesNaListagem = computed(() => this.equipesDaListagem());
+  /** As ações secundárias do item, no "⋯ Mais ações" do cabeçalho (a principal, "Editar", fica em destaque). */
+  readonly maisAcoes = computed<MenuItem[]>(() => {
+    const [meta, registro] = [this.meta(), this.registro()];
+    return meta && registro && this.permissoes.podeExcluir(meta, registro)
+      ? [{ label: 'Excluir', icon: 'pi pi-trash', styleClass: 'acao-perigosa', command: () => void this.excluir() }]
+      : [];
+  });
+
   readonly titulo = computed(() => {
     const meta = this.meta();
     const registro = this.registro();
@@ -198,7 +212,8 @@ export class DetalheRegistroComponent {
     this.equipesDaListagem.set(await this.metadados.equipesDaListagem(grupo));
     this.nomeArea.set(await this.metadados.nomeDoGrupo(grupo));
     try {
-      const registro = await this.registros.obter(grupo, chave, id);
+      // O 404 vira o estado "item não disponível" da própria tela, sem toast repetindo a mesma coisa.
+      const registro = await this.registros.obter(grupo, chave, id, tratarNoComponente(404));
       this.registro.set(registro);
       void this.carregarAvaliacao(grupo, chave, registro);
       void this.carregarRelacionados();

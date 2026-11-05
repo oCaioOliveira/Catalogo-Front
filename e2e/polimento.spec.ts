@@ -51,7 +51,7 @@ test('ordena os relatórios por Projeto (pelo nome do projeto), nos dois sentido
   await criarRelatorio(gestor, `${prefixo} T`, { projeto: c.projeto }); // Transferências Alfa
   await criarRelatorio(gestor, `${prefixo} C`, { projeto: c.outroProjeto }); // Consultas Alfa
 
-  await entrarComo(page, 'dev.gestor', `/testes_desempenho/relatorio_teste?bateria_testes.contem=${prefixo}`);
+  await entrarComo(page, 'dev.gestor', `/testes_desempenho/relatorio_teste?titulo.contem=${prefixo}`);
   const linhas = page.locator('tbody tr');
   await expect(linhas).toHaveCount(2);
 
@@ -73,7 +73,7 @@ test('no formulário, os textos longos ficam embaixo, na largura toda, e crescem
   const formulario = await page.locator('form.formulario').boundingBox();
   const contexto = campo(page, /^Contexto/);
   const objetivo = campo(page, /^Objetivo/);
-  const bateria = await campo(page, /^Bateria de testes/).boundingBox();
+  const bateria = await campo(page, /^Título/).boundingBox();
   const caixaContexto = (await contexto.boundingBox())!;
   const caixaObjetivo = (await objetivo.boundingBox())!;
 

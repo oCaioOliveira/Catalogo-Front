@@ -10,9 +10,7 @@ export const MENSAGENS_ERRO: Record<string, string> = {
   EXPORTACAO_MUITO_GRANDE: 'A exportação passaria do limite de linhas. Use mais filtros.',
   REQUISICAO_INVALIDA: 'A requisição foi recusada pelo servidor.',
   NAO_AUTENTICADO: 'Sua sessão expirou. Entre de novo.',
-  CREDENCIAIS_INVALIDAS: 'Matrícula ou senha inválidas.',
   SEM_PERMISSAO: 'Você não tem permissão para esta operação.',
-  TROCA_DE_SENHA_OBRIGATORIA: 'Troque a sua senha para continuar.',
   GRUPO_NAO_ENCONTRADO: 'Área de gestão não encontrada.',
   ENTIDADE_NAO_ENCONTRADA: 'Tipo de item não encontrado.',
   CAMPO_NAO_ENCONTRADO: 'Campo não encontrado.',
@@ -36,7 +34,6 @@ export const MENSAGENS_ERRO: Record<string, string> = {
   IMPORTACAO_NAO_PODE_SER_DESFEITA:
     'A importação não pode ser desfeita: itens criados por ela foram alterados ou são usados por outros itens.',
   IMPORTACAO_ARQUIVO_EXPIRADO: 'O arquivo desta importação já foi apagado (fica guardado por 7 dias). Envie de novo.',
-  MUITAS_TENTATIVAS: 'Muitas tentativas de login. Aguarde um minuto e tente de novo.',
   ERRO_INTERNO: 'Erro inesperado no servidor.',
   [SEM_CONEXAO]: 'Sem conexão com a API. Verifique se ela está no ar e tente de novo.',
 };

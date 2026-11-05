@@ -10,8 +10,6 @@ function usuario(extras: Partial<UsuarioAdmin>): UsuarioAdmin {
     nome: 'n',
     perfil: 'INTERNO',
     ativo: true,
-    deveTrocarSenha: false,
-    bloqueadoAte: null,
     ultimoAcessoEm: null,
     criadoEm: '2026-10-01T00:00:00Z',
     equipes: [],
@@ -57,14 +55,8 @@ describe('membros que ficariam sem equipe ativa (RN31)', () => {
 });
 
 describe('situação do usuário', () => {
-  const agora = new Date('2026-10-22T15:00:00Z');
-
-  it('Inativo, Bloqueado até hh:mm (no fuso do navegador) ou Ativo', () => {
-    expect(situacaoDoUsuario(usuario({ ativo: false }), agora).rotulo).toBe('Inativo');
-    const bloqueado = situacaoDoUsuario(usuario({ bloqueadoAte: '2026-10-22T15:10:00Z' }), agora);
-    expect(bloqueado.rotulo).toMatch(/^Bloqueado até \d{2}:\d{2}$/);
-    expect(bloqueado.severidade).toBe('warn');
-    // Bloqueio vencido não conta.
-    expect(situacaoDoUsuario(usuario({ bloqueadoAte: '2026-10-22T14:00:00Z' }), agora).rotulo).toBe('Ativo');
+  it('Ativo ou Inativo (não há mais bloqueio por tentativas: o login é o do Windows)', () => {
+    expect(situacaoDoUsuario(usuario({ ativo: false }))).toEqual({ rotulo: 'Inativo', severidade: 'secondary' });
+    expect(situacaoDoUsuario(usuario({ ativo: true }))).toEqual({ rotulo: 'Ativo', severidade: 'success' });
   });
 });

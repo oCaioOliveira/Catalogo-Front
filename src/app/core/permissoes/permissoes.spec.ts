@@ -23,7 +23,6 @@ function usuario(perfil: Perfil, equipes: string[] = ['A']): UsuarioLogado {
     matricula: 'm',
     nome: 'n',
     perfil,
-    deveTrocarSenha: false,
     equipes: equipes.map((id) => ({ id, nome: id })),
   };
 }

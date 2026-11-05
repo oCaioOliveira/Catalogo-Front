@@ -1,13 +1,13 @@
 // Dados de exemplo para DESENVOLVIMENTO, criados PELA API (nunca por SQL direto: assim valem as validações, o
 // RegistroValor e as chaves únicas). IDEMPOTENTE: pode rodar várias vezes; o que já existe não é duplicado.
 //
-//   CATALOGO_ADMIN_SENHA=... CATALOGO_SENHA_DEV=... npm run dados-dev
+//   npm run dados-dev
 //
-// Variáveis de ambiente (as senhas NUNCA ficam no código):
+// Não há senha: o login é o do Windows (RN23, ADR 0054), que não existe no WSL. O script usa o token do administrador gerado com
+// a chave do banco LOCAL (tools/token-local.mjs), o mesmo que a API emitiria.
+// Variáveis de ambiente:
 //   CATALOGO_API             URL da API (padrão http://localhost:5080)
 //   CATALOGO_ADMIN_MATRICULA administrador que roda o script (padrão "admin", criado com o comando criar-admin)
-//   CATALOGO_ADMIN_SENHA     senha desse administrador (obrigatória)
-//   CATALOGO_SENHA_DEV       senha dos usuários de exemplo dev.* (obrigatória; 10+ caracteres, letras e números)
 //
 // Cria: Equipe Alfa e Equipe Beta (habilitadas na área testes_desempenho); um usuário de cada perfil (dev.externo, dev.interno, dev.gestor,
 // dev.administrador) e dev.duas (INTERNO nas duas equipes); comunidades, siglas, ambientes e status (globais);
@@ -15,16 +15,11 @@
 // 60 relatórios de histórico espalhados de nov/2025 a out/2026 (5 por mês), com 4 ambientes, os 3 status, os 4 tipos e
 // medidas variadas (o percentil 95 cai ao longo dos meses; Produção tem mais vazão). Só ACRESCENTA: nada é alterado nem apagado.
 
+import { tokenLocal } from '../token-local.mjs';
+
 const API = (process.env.CATALOGO_API ?? 'http://localhost:5080').replace(/\/$/, '');
 const ADMIN = process.env.CATALOGO_ADMIN_MATRICULA ?? 'admin';
-const SENHA_ADMIN = process.env.CATALOGO_ADMIN_SENHA;
-const SENHA_DEV = process.env.CATALOGO_SENHA_DEV;
 const GRUPO = 'testes_desempenho';
-
-if (!SENHA_ADMIN || !SENHA_DEV) {
-  console.error('Defina CATALOGO_ADMIN_SENHA e CATALOGO_SENHA_DEV (veja o cabeçalho deste arquivo).');
-  process.exit(1);
-}
 
 // ---- HTTP ----
 
@@ -48,10 +43,6 @@ async function chamar(metodo, caminho, { token, corpo, consulta } = {}) {
     throw erro;
   }
   return dados;
-}
-
-async function entrar(matricula, senha) {
-  return (await chamar('POST', '/auth/login', { corpo: { matricula, senha } })).token;
 }
 
 // ---- Gerador pseudoaleatório com semente fixa: os mesmos valores a cada execução. ----
@@ -106,16 +97,10 @@ async function garantirEquipe(token, nome) {
 async function garantirUsuario(token, matricula, nome, perfil, equipes) {
   const usuarios = await chamar('GET', '/usuarios', { token, consulta: { busca: matricula, tamanho: 100 } });
   if (usuarios.itens.some((u) => u.matricula.toLowerCase() === matricula)) {
-    console.log(`  usuário ${matricula}: já existe (a senha não foi alterada)`);
+    console.log(`  usuário ${matricula}: já existe`);
     return;
   }
-  const criado = await chamar('POST', '/usuarios', { token, corpo: { matricula, nome, perfil, equipes } });
-  // A senha provisória vale uma vez: troca pela de desenvolvimento (RN25).
-  const tokenUsuario = await entrar(matricula, criado.senhaProvisoria);
-  await chamar('POST', '/auth/trocar-senha', {
-    token: tokenUsuario,
-    corpo: { senhaAtual: criado.senhaProvisoria, novaSenha: SENHA_DEV },
-  });
+  await chamar('POST', '/usuarios', { token, corpo: { matricula, nome, perfil, equipes } });
   console.log(`  usuário ${matricula} (${perfil}): criado`);
 }
 
@@ -139,7 +124,7 @@ async function habilitarEquipes(token, equipes) {
 
 async function principal() {
   console.log(`API: ${API}`);
-  const token = await entrar(ADMIN, SENHA_ADMIN);
+  const { token } = tokenLocal(ADMIN);
 
   console.log('Equipes e usuários');
   const alfa = await garantirEquipe(token, 'Equipe Alfa');

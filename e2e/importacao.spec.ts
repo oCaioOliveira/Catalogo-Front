@@ -25,18 +25,26 @@ const CENARIOS = `/${GRUPO}/cenario_teste`;
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 const CABECALHOS_RELATORIO = [
+  'Título *',
   'Projeto *',
-  'RTC *',
+  'RTC',
   'Ambiente *',
   'Status *',
   'Data de execução *',
-  'Bateria de testes *',
-  'Tipo de teste *',
+  'Nº da bateria *',
+  'Tecnologia *',
   'Executado por *',
+  'Comunidade na execução',
+  'Host / gerenciador de filas',
+  'Endpoints / filas testados',
   'Contexto',
   'Objetivo',
   'Apontamentos',
+  'Observações dos cenários',
   'Conclusão',
+  'Script',
+  'Configurações do ambiente',
+  'Infraestrutura',
 ];
 const CABECALHOS_CENARIO = [
   'Relatório *',
@@ -107,14 +115,15 @@ function linhaRelatorio(
   extras: Partial<Record<'projeto' | 'status' | 'data', string>> = {},
 ): (string | number)[] {
   return [
+    `${prefixo} R${String(numero).padStart(2, '0')}`,
     // Sem diferenciar maiúsculas e acentos (RN99).
     extras.projeto ?? `TRANSFERENCIAS ${prefixo}`,
     rtc,
     'homologacao',
     extras.status ?? 'Aprovado',
     extras.data ?? `${String((numero % 28) + 1).padStart(2, '0')}/10/2026 14:30`,
-    `${prefixo} R${String(numero).padStart(2, '0')}`,
-    'Carga',
+    numero,
+    'API',
     'Equipe E2E',
   ];
 }
@@ -229,7 +238,8 @@ async function mostrarModelo(page: Page, modelo: Buffer, tema: 'claro' | 'escuro
 
 test('1. baixar o modelo de Relatório de Teste: colunas, listas suspensas e aba Instruções', async ({ page }) => {
   await entrarComToken(page, gestor.token, RELATORIOS);
-  await page.getByRole('button', { name: 'Importar', exact: true }).click();
+  await page.getByRole('button', { name: 'Mais ações' }).click();
+  await page.getByRole('menuitem', { name: 'Importar planilha' }).click();
   await expect(page.getByRole('heading', { name: 'Importar relatórios de teste', level: 1 })).toBeVisible();
   await expect(
     page.getByText('Referências são identificadas pelo nome. Se houver nomes repetidos, use a coluna (ID).'),
@@ -243,8 +253,9 @@ test('1. baixar o modelo de Relatório de Teste: colunas, listas suspensas e aba
   // O nome dos campos ativos, na ordem do formulário, com "*" nos obrigatórios; sem coluna Equipe (o gestor tem uma equipe só).
   expect(dados.nome).toBe('Relatórios de Teste');
   expect(dados.linhas[0]).toEqual(CABECALHOS_RELATORIO);
-  // Listas suspensas nas referências com poucos itens (Projeto, RTC, Ambiente, Status), com a lista numa aba oculta.
-  expect(dados.colunasComLista).toEqual([1, 2, 3, 4]);
+  // Listas suspensas nas referências com poucos itens (Projeto, RTC, Ambiente, Status) e no campo LISTA (Tecnologia), com a lista
+  // numa aba oculta.
+  expect(dados.colunasComLista).toEqual([2, 3, 4, 5, 8]);
   expect(abas.find((a) => a.nome === 'Listas')?.oculta).toBe(true);
   const instrucoes = abas.find((a) => a.nome === 'Instruções')!;
   const textos = instrucoes.linhas.map((l) => (l ?? []).join(' ')).join('\n');
@@ -306,7 +317,7 @@ test('2. importar 20 relatórios, 3 com erro: prévia com as células certas, im
   await capturar(page, 'importacao-5-conclusao-claro');
 
   // A listagem: os 17 relatórios, na equipe do teste.
-  const lista = await listar(gestor.token, 'relatorio_teste', { 'bateria_testes.contem': prefixo, tamanho: '50' });
+  const lista = await listar(gestor.token, 'relatorio_teste', { 'titulo.contem': prefixo, tamanho: '50' });
   expect(lista.total).toBe(17);
   expect(lista.itens.every((i) => i.equipeId === equipeId)).toBeTruthy();
   await page.getByRole('button', { name: 'Ver na listagem' }).click();
@@ -364,7 +375,7 @@ test('3. importar cenários para esses relatórios: referência pelo nome, depen
 
   await page.getByRole('button', { name: 'Importar 3 itens' }).click();
   await expect(page.getByText('3 itens criados, 3 linhas com erro não importadas.')).toBeVisible();
-  const cenarios = await listar(gestor.token, 'cenario_teste', { 'relatorio_teste.bateria_testes.contem': prefixo });
+  const cenarios = await listar(gestor.token, 'cenario_teste', { 'relatorio_teste.titulo.contem': prefixo });
   expect(cenarios.total).toBe(3);
 
   // 4. O relatório de resultado: as linhas originais e as colunas Resultado e Mensagens.
@@ -381,9 +392,7 @@ test('3. importar cenários para esses relatórios: referência pelo nome, depen
   await expect(confirmacao).toBeVisible();
   await confirmacao.getByRole('button', { name: 'Desfazer importação' }).click();
   await expect(page.getByRole('heading', { name: 'Importação desfeita' })).toBeVisible();
-  expect(
-    (await listar(gestor.token, 'cenario_teste', { 'relatorio_teste.bateria_testes.contem': prefixo })).total,
-  ).toBe(0);
+  expect((await listar(gestor.token, 'cenario_teste', { 'relatorio_teste.titulo.contem': prefixo })).total).toBe(0);
 });
 
 test('5. desfazer a importação dos relatórios (sem cenários) e recusar o desfazer de um relatório alterado depois', async ({
@@ -396,7 +405,7 @@ test('5. desfazer a importação dos relatórios (sem cenários) e recusar o des
   await confirmarDesfazer(page);
   await expect(page.getByText('Importação desfeita: os itens criados por ela foram excluídos.')).toBeVisible();
   await expect(linha).toContainText('Desfeita');
-  expect((await listar(gestor.token, 'relatorio_teste', { 'bateria_testes.contem': prefixo })).total).toBe(0);
+  expect((await listar(gestor.token, 'relatorio_teste', { 'titulo.contem': prefixo })).total).toBe(0);
 
   // De novo, agora com um relatório alterado depois da importação.
   const arquivo = await preencherModelo(modeloRelatorios, [linhaRelatorio(30), linhaRelatorio(31)]);
@@ -406,7 +415,7 @@ test('5. desfazer a importação dos relatórios (sem cenários) e recusar o des
   await page.getByRole('button', { name: 'Importar 2 itens' }).click();
   await expect(page.getByText('2 itens criados.')).toBeVisible();
 
-  const [item] = (await listar(gestor.token, 'relatorio_teste', { bateria_testes: `${prefixo} R30` })).itens;
+  const [item] = (await listar(gestor.token, 'relatorio_teste', { titulo: `${prefixo} R30` })).itens;
   const lido = await chamar<{ versao: string; dados: Record<string, unknown> }>(
     gestor.token,
     'GET',
@@ -424,7 +433,7 @@ test('5. desfazer a importação dos relatórios (sem cenários) e recusar o des
     `/grupos/${GRUPO}/entidades/relatorio_teste/registros/${item.id}`,
     {
       ...corpo,
-      tipo_teste: 'Estresse',
+      tipo_teste: 'WEB',
       versao: lido.corpo.versao,
     },
   );
@@ -438,7 +447,7 @@ test('5. desfazer a importação dos relatórios (sem cenários) e recusar o des
   await expect(aviso).toContainText(`${prefixo} R30`);
   await capturarTela(page, 'importacao-desfazer-recusado-claro');
   await aviso.getByRole('button', { name: 'Entendi' }).click();
-  expect((await listar(gestor.token, 'relatorio_teste', { 'bateria_testes.contem': prefixo })).total).toBe(2);
+  expect((await listar(gestor.token, 'relatorio_teste', { 'titulo.contem': prefixo })).total).toBe(2);
 });
 
 test('6. importar um CSV com separador ";" e números com vírgula decimal', async ({ page }) => {
@@ -459,19 +468,20 @@ test('6. importar um CSV com separador ";" e números com vírgula decimal', asy
   await page.getByRole('button', { name: 'Importar 1 item' }).click();
   await expect(page.getByText('1 item criado.')).toBeVisible();
 
-  const [cenario] = (
-    await listar(gestor.token, 'cenario_teste', { 'relatorio_teste.bateria_testes': `${prefixo} R31` })
-  ).itens;
+  const [cenario] = (await listar(gestor.token, 'cenario_teste', { 'relatorio_teste.titulo': `${prefixo} R31` })).itens;
   expect(Number(cenario.dados['vazao_media_tps'])).toBe(1234.56);
   expect(Number(cenario.dados['taxa_erro_percentual'])).toBe(0.25);
   expect(Number(cenario.dados['usuarios_virtuais'])).toBe(1200);
 });
 
-test('7. o EXTERNO não vê o botão Importar onde não pode criar', async ({ page }) => {
+test('7. o EXTERNO não vê a importação onde não pode criar', async ({ page }) => {
   await entrarComToken(page, externo.token, RELATORIOS);
   await expect(page.getByRole('heading', { name: 'Relatórios de Teste', level: 1 })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Exportar' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Importar', exact: true })).toHaveCount(0);
+  // No "⋯ Mais ações", só a exportação.
+  await page.getByRole('button', { name: 'Mais ações' }).click();
+  await expect(page.getByRole('menuitem', { name: 'Planilha Excel (.xlsx)' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Importar planilha' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
   // Nem pelo endereço direto.
   await page.goto(`${RELATORIOS}/importar`);
   await expect(page.getByRole('heading', { name: /permissão/i, level: 1 })).toBeVisible();

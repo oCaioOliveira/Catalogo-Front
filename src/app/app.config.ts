@@ -31,7 +31,7 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     // Os parâmetros da rota (inclusive os do pai: :grupo e :entidade) chegam aos componentes como inputs.
     provideRouter(routes, withComponentInputBinding(), withRouterConfig({ paramsInheritanceStrategy: 'always' })),
-    // A ordem importa: o de autenticação vê o erro primeiro (401, troca de senha); o de erros mostra o toast.
+    // A ordem importa: o de autenticação vê o erro primeiro (401); o de erros mostra o toast.
     provideHttpClient(withInterceptors([erroInterceptor, authInterceptor])),
     // A URL da API (BACK_API_URL) vem do config.json, lido no inicializador abaixo. Todas as chamadas (cliente gerado, login,
     // exportação, importação) partem dela. Vazia (local): caminhos relativos /api/v1/..., que o `npm start` leva à API pelo proxy.
@@ -41,15 +41,16 @@ export const appConfig: ApplicationConfig = {
     { provide: LOCALE_ID, useValue: 'pt-BR' },
     MessageService,
     ConfirmationService,
-    // Primeiro a URL da API (config.json, ver core/configuracao); só depois, com um token guardado (página recarregada), carrega o
-    // usuário antes da primeira tela. Num inicializador só: os inicializadores do Angular rodam ao mesmo tempo, não em sequência.
+    // Primeiro a URL da API (config.json, ver core/configuracao); só depois entra pelo Windows (POST /auth/login com
+    // withCredentials, RN23) antes da primeira tela. Se não der, as rotas levam à tela de acesso (negado ou indisponível).
+    // Num inicializador só: os inicializadores do Angular rodam ao mesmo tempo, não em sequência.
     provideAppInitializer(async () => {
       const configuracao = inject(ApiConfiguration);
       const auth = inject(AuthService);
       configuracao.rootUrl = await carregarUrlApi();
-      await auth.restaurar();
+      await auth.iniciar();
     }),
-    // Tema claro, escuro ou "seguir o sistema" (o padrão), desde a primeira tela, inclusive o login.
+    // Tema claro, escuro ou "seguir o sistema" (o padrão), desde a primeira tela, inclusive a de acesso.
     provideAppInitializer(() => void inject(TemaService)),
   ],
 };

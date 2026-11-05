@@ -1,7 +1,7 @@
 import { Page, expect, test } from '@playwright/test';
 import { GRUPO, chamar, criar, idPor, listar, prefixoUnico, tokenDe } from './apoio/api';
 import { habilitarNaListagem, limparE2E } from './apoio/limpeza';
-import { botaoMenuUsuario, entrarComToken, noMenuDoUsuario } from './apoio/sessao';
+import { botaoMenuUsuario, entrarComToken, noMenuDoUsuario, simularLoginWindows } from './apoio/sessao';
 import { UsuarioTeste, criarUsuarioDeTeste } from './apoio/usuarios-teste';
 
 /**
@@ -11,7 +11,8 @@ import { UsuarioTeste, criarUsuarioDeTeste } from './apoio/usuarios-teste';
  * o contador, consultado uma vez na carga e não a cada tela.
  *
  * O arquivo cria a PRÓPRIA equipe ("Equipe E2E-…"), habilitada em Testes de Desempenho (RN90), com a aprovação de Relatórios de
- * Teste ligada só nela e um item pendente; a limpeza fica com o helper compartilhado (e2e/apoio/limpeza.ts).
+ * Teste ligada só nela e um item pendente, que o último teste aprova direto na fila; a limpeza fica com o helper compartilhado
+ * (e2e/apoio/limpeza.ts).
  */
 
 const prefixo = prefixoUnico();
@@ -26,7 +27,7 @@ let gestor: UsuarioTeste;
 test.describe.configure({ mode: 'serial' });
 
 test.beforeAll(async () => {
-  // Três logins: se outro arquivo já gastou o limite do minuto (RN23), um deles espera 61 s.
+  // Cria a equipe, liga a aprovação e cria três usuários (o login pelo Windows é simulado).
   test.setTimeout(240_000);
   const admin = tokenDe('admin');
   await limparE2E(admin);
@@ -55,8 +56,9 @@ test.beforeAll(async () => {
     ambiente: await idPor(admin, 'ambiente', 'nome', 'Homologação'),
     status_resultado: await idPor(admin, 'status_resultado', 'descricao', 'Aprovado'),
     data_execucao: '2026-10-01T10:00:00-03:00',
-    bateria_testes: `${prefixo} pendente`,
-    tipo_teste: 'Carga',
+    titulo: `${prefixo} pendente`,
+    bateria_testes: 1,
+    tipo_teste: 'API',
     executado_por: 'Equipe E2E',
   });
 });
@@ -123,13 +125,13 @@ test('INTERNO entra na mesma aba depois do GESTOR: nenhuma consulta à fila e ne
   await entrarComToken(page, gestor.token, `/${GRUPO}`);
   await expect(page.getByRole('link', { name: 'Aprovações (1 pendente)' })).toBeVisible();
   await noMenuDoUsuario(page, 'Sair');
-  await expect(page).toHaveURL(/\/login/);
+  await expect(page).toHaveURL(/\/acesso/);
 
-  // Daqui em diante, só o que o INTERNO faz (a página não recarrega: o app é o mesmo do GESTOR).
+  // Daqui em diante, só o que o INTERNO faz (a página não recarrega: o app é o mesmo do GESTOR). Outro usuário do Windows
+  // entra pelo "Entrar de novo".
   const fila = observarFila(page);
-  await page.getByLabel('Matrícula').fill(interno.matricula);
-  await page.locator('#senha').fill(interno.senha);
-  await page.getByRole('button', { name: 'Entrar' }).click();
+  await simularLoginWindows(page, interno.token);
+  await page.getByRole('button', { name: 'Entrar de novo' }).click();
   await expect(botaoMenuUsuario(page)).toBeVisible();
   await navegarPorTresTelas(page);
 
@@ -154,4 +156,28 @@ test('GESTOR vê o contador; navegar por 3 telas não consulta a fila de novo', 
   await expect(page.getByRole('link', { name: 'Aprovações (1 pendente)' })).toBeVisible();
   await semAvisos(page);
   expect(fila.requisicoes(), 'nenhuma consulta a mais ao navegar').toBe(naCarga);
+});
+
+test('GESTOR aprova direto na fila, sem abrir o item: aviso de sucesso e a fila e o contador zeram', async ({
+  page,
+}) => {
+  await entrarComToken(page, gestor.token, `/aprovacoes?grupo=${GRUPO}`);
+  const linha = page.locator('tbody tr').filter({ hasText: `${prefixo} pendente` });
+  await expect(linha).toBeVisible();
+
+  await linha.getByRole('button', { name: `Aprovar ${prefixo} pendente` }).click();
+  const dialogo = page.getByRole('dialog', { name: 'Aprovar o item' });
+  await expect(dialogo).toContainText(`${prefixo} pendente`);
+  // A justificativa continua obrigatória (RN36): sem ela, o erro aparece no campo e nada é gravado.
+  await dialogo.getByRole('button', { name: 'Aprovar' }).click();
+  await expect(dialogo.locator('#justificativa-erro')).toBeVisible();
+  await dialogo.getByRole('textbox', { name: /^Justificativa/ }).fill('Conferido direto na fila pelo teste.');
+  await dialogo.getByRole('button', { name: 'Aprovar' }).click();
+
+  await expect(dialogo).toBeHidden();
+  await expect(page.getByText('Item aprovado.')).toBeVisible();
+  // Continua na fila, já sem o item, e o contador do cabeçalho acompanha.
+  await expect(page).toHaveURL(/\/aprovacoes/);
+  await expect(page.getByText('Nenhum item aguardando aprovação')).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Aprovações \(1 pendente\)/ })).toHaveCount(0);
 });

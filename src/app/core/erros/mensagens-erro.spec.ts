@@ -41,9 +41,7 @@ describe('erros da API', () => {
       'EXPORTACAO_MUITO_GRANDE',
       'REQUISICAO_INVALIDA',
       'NAO_AUTENTICADO',
-      'CREDENCIAIS_INVALIDAS',
       'SEM_PERMISSAO',
-      'TROCA_DE_SENHA_OBRIGATORIA',
       'GRUPO_NAO_ENCONTRADO',
       'ENTIDADE_NAO_ENCONTRADA',
       'REGISTRO_NAO_ENCONTRADO',
@@ -56,7 +54,6 @@ describe('erros da API', () => {
       'IMPORTACAO_DADOS_MUDARAM',
       'IMPORTACAO_NAO_PODE_SER_DESFEITA',
       'IMPORTACAO_ARQUIVO_EXPIRADO',
-      'MUITAS_TENTATIVAS',
       'ERRO_INTERNO',
     ];
     expect(codigos.filter((c) => !MENSAGENS_ERRO[c])).toEqual([]);

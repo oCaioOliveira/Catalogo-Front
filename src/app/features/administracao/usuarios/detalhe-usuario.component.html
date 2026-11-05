@@ -11,14 +11,6 @@
   >
     <p-button
       acoes
-      label="Redefinir senha"
-      icon="pi pi-key"
-      severity="secondary"
-      [outlined]="true"
-      (onClick)="redefinirSenha()"
-    />
-    <p-button
-      acoes
       [label]="usuario.ativo ? 'Desativar usuário' : 'Ativar usuário'"
       [icon]="usuario.ativo ? 'pi pi-ban' : 'pi pi-check-circle'"
       [severity]="usuario.ativo ? 'danger' : 'secondary'"
@@ -56,9 +48,6 @@
             <dd>
               @if (situacao(); as s) {
                 <p-tag [value]="s.rotulo" [severity]="s.severidade" />
-              }
-              @if (usuario.deveTrocarSenha) {
-                <span class="texto-secundario"> Precisa trocar a senha no próximo acesso.</span>
               }
             </dd>
           </div>
@@ -101,5 +90,3 @@
 } @else {
   <p-skeleton height="12rem" />
 }
-
-<app-senha-provisoria-dialog />

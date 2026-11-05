@@ -1,14 +1,14 @@
 import { Browser, Page, expect, test } from '@playwright/test';
-import { randomBytes } from 'node:crypto';
-import { GRUPO, chamar, criar, idPor, listar, prefixoUnico, tokenDe } from './apoio/api';
+import { GRUPO, chamar, criar, idPor, listar, prefixoUnico, tokenDaMatricula, tokenDe } from './apoio/api';
 import { habilitarNaListagem, limparE2E } from './apoio/limpeza';
 import {
   campo,
   capturar,
   capturarTela,
   digitarData,
-  entrarComToken,
   entrarComo,
+  entrarComToken,
+  escolherOpcao,
   escolherReferencia,
 } from './apoio/sessao';
 
@@ -47,44 +47,18 @@ let relatorioId = '';
 
 test.describe.configure({ mode: 'serial' });
 
-/** Uma senha nova forte (nunca impressa nem gravada). */
-function senhaForte(): string {
-  return `Nova${randomBytes(9).toString('base64url')}9a`;
-}
-
-/** Login pela API, com uma espera se o limite de 10 por minuto (RN23) estourar. */
-async function entrar(matricula: string, senha: string): Promise<string> {
-  for (let tentativa = 1; tentativa <= 2; tentativa++) {
-    const { status, corpo } = await chamar<{ token: string }>(null, 'POST', '/auth/login', { matricula, senha });
-    if (status === 200) {
-      return corpo.token;
-    }
-    if (status !== 429) {
-      throw new Error(`Login de ${matricula}: ${status}`);
-    }
-    await new Promise((r) => setTimeout(r, 61_000));
-  }
-  throw new Error(`Login de ${matricula}: limite de tentativas`);
-}
-
-/** Cria o usuário na equipe do teste, entra com a senha provisória e troca a senha (o token continua válido, RN25). */
+/** Cria o usuário na equipe do teste, pela matrícula, e pega o token que o login pelo Windows daria a ele. */
 async function criarUsuario(sufixo: string, nome: string, perfil: string): Promise<UsuarioTeste> {
   const admin = tokenDe('admin');
   const matricula = `${prefixo.toLowerCase()}-${sufixo}`;
-  const { status, corpo } = await chamar<{ senhaProvisoria: string; usuario: { id: string } }>(
-    admin,
-    'POST',
-    '/usuarios',
-    { matricula, nome: `${nome} ${prefixo}`, perfil, equipes: [equipeId] },
-  );
-  expect(status, `POST /usuarios ${perfil}`).toBe(201);
-  const token = await entrar(matricula, corpo.senhaProvisoria);
-  const troca = await chamar(token, 'POST', '/auth/trocar-senha', {
-    senhaAtual: corpo.senhaProvisoria,
-    novaSenha: senhaForte(),
+  const { status, corpo } = await chamar<{ id: string }>(admin, 'POST', '/usuarios', {
+    matricula,
+    nome: `${nome} ${prefixo}`,
+    perfil,
+    equipes: [equipeId],
   });
-  expect(troca.status, 'trocar-senha').toBe(204);
-  return { id: corpo.usuario.id, token };
+  expect(status, `POST /usuarios ${perfil}`).toBe(201);
+  return { id: corpo.id, token: tokenDaMatricula(matricula) };
 }
 
 /** Uma página nova (outro contexto: outra sessão) já logada com o token. */
@@ -108,8 +82,9 @@ function corpoRelatorio(bateria: string): Record<string, unknown> {
     ambiente,
     status_resultado: statusResultado,
     data_execucao: '2026-10-01T10:00:00-03:00',
-    bateria_testes: bateria,
-    tipo_teste: 'Carga',
+    titulo: bateria,
+    bateria_testes: 1,
+    tipo_teste: 'API',
     executado_por: 'Equipe E2E',
   };
 }
@@ -132,7 +107,7 @@ async function darEstrelas(pagina: Page, criterio: string, estrelas: number): Pr
 }
 
 test.beforeAll(async () => {
-  // Quatro logins: se outro arquivo já gastou o limite do minuto (RN23), um deles espera 61 s.
+  // Cria a equipe e os quatro usuários do arquivo (o login pelo Windows é simulado).
   test.setTimeout(240_000);
   const admin = tokenDe('admin');
   await limparE2E(admin);
@@ -203,8 +178,9 @@ test('2. o EXTERNO cria um relatório: fica Pendente, com a mensagem; outro EXTE
   await escolherReferencia(page, /^Ambiente/, 'Homolog', 'Homologação');
   await escolherReferencia(page, /^Status/, 'Aprovado', /^Aprovado$/);
   await digitarData(page, /^Data de execução/, '01/10/2026 10:00');
-  await campo(page, /^Bateria de testes/).fill(`${prefixo} A`);
-  await campo(page, /^Tipo de teste/).fill('Carga');
+  await campo(page, /^Título/).fill(`${prefixo} A`);
+  await campo(page, /^Nº da bateria/).fill('1');
+  await escolherOpcao(page, /^Tecnologia/, 'API');
   await campo(page, /^Executado por/).fill('Equipe E2E');
   await page.getByRole('button', { name: /^Salvar\b/ }).click();
 
@@ -216,7 +192,7 @@ test('2. o EXTERNO cria um relatório: fica Pendente, com a mensagem; outro EXTE
   // RN37: o pendente é só do autor (e de quem decide).
   const outro = await abrirComo(browser, outroExterno, `${LISTA}/${relatorioId}`);
   await expect(outro.getByText('Este item não está disponível')).toBeVisible();
-  await outro.goto(`${LISTA}?bateria_testes.contem=${prefixo}`);
+  await outro.goto(`${LISTA}?titulo.contem=${prefixo}`);
   await expect(outro.getByText('Nenhum item encontrado com estes filtros')).toBeVisible();
   await outro.context().close();
 });
@@ -289,7 +265,8 @@ test('4. o EXTERNO vê a rejeição, corrige e reenvia; o GESTOR aprova; o EXTER
   await expect(faixa).toContainText('Aprovado');
   await expect(faixa.locator('.faixa-justificativa')).toHaveText('Objetivo preenchido, resultados conferidos.');
   await expect(page.getByRole('button', { name: 'Editar' })).toBeHidden();
-  await expect(page.getByRole('button', { name: 'Excluir' })).toBeHidden();
+  // Nem excluir: sem ações secundárias, o "⋯ Mais ações" nem aparece.
+  await expect(page.getByRole('button', { name: 'Mais ações' })).toBeHidden();
 });
 
 test('5. o histórico mostra a criação, a rejeição, o reenvio e a aprovação, com as justificativas', async ({
@@ -427,10 +404,10 @@ test('9. a coluna de média da Qualidade aparece na listagem e ordena; o painel 
     { respostas: { qualidade: { estrelas: 5, comentario: 'Completo.' } } },
   );
   expect(avaliacao.status).toBe(201);
-  const pendente = (await listar(gestor.token, ENTIDADE, { 'bateria_testes.contem': `${prefixo} C` })).itens[0];
+  const pendente = (await listar(gestor.token, ENTIDADE, { 'titulo.contem': `${prefixo} C` })).itens[0];
   await decidirPelaApi(gestor.token, pendente.id, 'APROVAR');
 
-  await entrarComToken(page, gestor.token, `${LISTA}?bateria_testes.contem=${prefixo}`);
+  await entrarComToken(page, gestor.token, `${LISTA}?titulo.contem=${prefixo}`);
   await expect(page.getByRole('columnheader', { name: 'Situação' })).toBeVisible();
   // A média é uma coluna opcional: entra pelo seletor de colunas.
   await page.getByRole('button', { name: /^Colunas visíveis/ }).click();

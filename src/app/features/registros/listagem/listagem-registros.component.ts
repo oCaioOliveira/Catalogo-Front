@@ -14,10 +14,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MenuItem, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
-import { Menu } from 'primeng/menu';
 import { Message } from 'primeng/message';
 import { Skeleton } from 'primeng/skeleton';
-import { SplitButton } from 'primeng/splitbutton';
 import { Tag } from 'primeng/tag';
 import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { SITUACOES, mostraSituacao, situacaoDe } from '../../../core/aprovacao/regras-aprovacao';
@@ -37,6 +35,7 @@ import { ValorCampo } from '../../../shared/formulario/valores';
 import { EstadoErroComponent } from '../../../shared/estados/estado-erro.component';
 import { EstadoVazioComponent } from '../../../shared/estados/estado-vazio.component';
 import { PassoTrilha } from '../../../shared/navegacao/trilha.component';
+import { MaisAcoesComponent } from '../../../shared/pagina/mais-acoes.component';
 import { CabecalhoPaginaComponent } from '../../../shared/pagina/cabecalho-pagina.component';
 import { AlternarDensidadeComponent } from '../../../shared/tabelas/alternar-densidade.component';
 import { ColunaRedimensionavelDirective } from '../../../shared/tabelas/coluna-redimensionavel.directive';
@@ -96,10 +95,8 @@ import {
     FormsModule,
     RouterLink,
     Button,
-    Menu,
     Message,
     Skeleton,
-    SplitButton,
     TableModule,
     Tag,
     MediaEstrelasComponent,
@@ -107,6 +104,7 @@ import {
     ValorCampoComponent,
     AlternarDensidadeComponent,
     CabecalhoPaginaComponent,
+    MaisAcoesComponent,
     ColunaRedimensionavelDirective,
     EstadoErroComponent,
     EstadoVazioComponent,
@@ -227,15 +225,32 @@ export class ListagemRegistrosComponent {
   readonly linhasEsqueleto = Array.from({ length: 5 }, (_, i) => i);
   readonly opcoesTamanho = environment.opcoesTamanhoPagina;
 
-  readonly itensExportar = itensExportacao((formato) => void this.exportar(formato));
-  /** RN97: "Importar" abre o assistente; o menu ao lado leva às importações anteriores (RN104). */
-  readonly itensImportar = computed<MenuItem[]>(() => [
-    {
-      label: 'Importações anteriores',
-      icon: 'pi pi-history',
-      routerLink: ['/', this.grupo(), this.entidade(), 'importacoes'],
-    },
-  ]);
+  private readonly itensExportar = itensExportacao((formato) => void this.exportar(formato));
+  /**
+   * As ações secundárias da lista, no "⋯ Mais ações" do cabeçalho (a principal, "Novo", fica em destaque): importar uma planilha
+   * (RN97) e ver as importações anteriores (RN104), para quem pode criar; exportar com os filtros atuais (RN49).
+   */
+  readonly maisAcoes = computed<MenuItem[]>(() => {
+    const meta = this.meta();
+    const acoes: MenuItem[] = [];
+    if (meta && this.permissoes.podeCriar(meta, this.minhasEquipes())) {
+      acoes.push({
+        label: 'Importar',
+        items: [
+          { label: 'Importar planilha', icon: 'pi pi-upload', command: () => this.importar() },
+          {
+            label: 'Importações anteriores',
+            icon: 'pi pi-history',
+            routerLink: ['/', this.grupo(), this.entidade(), 'importacoes'],
+          },
+        ],
+      });
+    }
+    if (this.permissoes.podeExportar()) {
+      acoes.push({ label: 'Exportar com os filtros atuais', items: this.itensExportar });
+    }
+    return acoes;
+  });
 
   readonly formatarDataHoraSistema = formatarDataHoraSistema;
 

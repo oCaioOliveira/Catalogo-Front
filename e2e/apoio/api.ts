@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { tokenLocal } from '../../tools/token-local.mjs';
 
 /**
  * Acesso direto à API para PREPARAR os dados de cada teste (não é o que está sendo testado). Cada teste cria os
@@ -11,14 +12,6 @@ export const GRUPO = 'testes_desempenho';
 const ARQUIVO_TOKENS = join(__dirname, '..', '.estado', 'tokens.json');
 
 export type UsuarioDev = 'admin' | 'dev.externo' | 'dev.interno' | 'dev.gestor';
-
-export function senhaDe(usuario: UsuarioDev): string {
-  const senha = usuario === 'admin' ? process.env['CATALOGO_ADMIN_SENHA'] : process.env['CATALOGO_SENHA_DEV'];
-  if (!senha) {
-    throw new Error('Defina CATALOGO_ADMIN_SENHA e CATALOGO_SENHA_DEV (as mesmas do npm run dados-dev).');
-  }
-  return senha;
-}
 
 /** Um prefixo único por teste: E2E-<hora><aleatório>. */
 export function prefixoUnico(): string {
@@ -40,12 +33,12 @@ export async function chamar<T = Record<string, unknown>>(
   return { status: resposta.status, corpo: (texto ? JSON.parse(texto) : null) as T };
 }
 
-export async function entrarPelaApi(matricula: string, senha: string): Promise<string> {
-  const { status, corpo } = await chamar<{ token: string }>(null, 'POST', '/auth/login', { matricula, senha });
-  if (status !== 200) {
-    throw new Error(`Login de ${matricula} falhou (${status}). Rodou o npm run dados-dev? As senhas estão certas?`);
-  }
-  return corpo.token;
+/**
+ * O token de um usuário do banco local, IGUAL ao que o login pelo Windows devolveria (tools/token-local.mjs). Nos E2E não há
+ * Windows: o POST /auth/login é simulado no navegador (sessao.ts) com este token, e o resto da API é o de verdade.
+ */
+export function tokenDaMatricula(matricula: string): string {
+  return tokenLocal(matricula).token;
 }
 
 export function gravarTokens(tokens: Record<string, string>): void {
@@ -53,7 +46,7 @@ export function gravarTokens(tokens: Record<string, string>): void {
   writeFileSync(ARQUIVO_TOKENS, JSON.stringify(tokens), { mode: 0o600 });
 }
 
-/** O token de um usuário de exemplo, obtido uma vez na preparação global (o login da API tem limite por minuto). */
+/** O token de um usuário de exemplo, gerado uma vez na preparação global. */
 export function tokenDe(usuario: UsuarioDev): string {
   const tokens = JSON.parse(readFileSync(ARQUIVO_TOKENS, 'utf8')) as Record<string, string>;
   return tokens[usuario];
@@ -129,8 +122,9 @@ export async function criarRelatorio(
     ambiente: c.ambiente,
     status_resultado: c.status,
     data_execucao: '2026-09-15T10:00:00-03:00',
-    bateria_testes: bateria,
-    tipo_teste: 'Carga',
+    titulo: bateria,
+    bateria_testes: 1,
+    tipo_teste: 'API',
     executado_por: 'Teste E2E',
     ...extras,
   });

@@ -20,7 +20,7 @@ fica no back-end.
 | [0037](0037-estado-da-listagem-na-url.md) | Estado da listagem na URL | Aceito |
 | [0039](0039-widgets-por-configuracao-em-arquivo.md) | Widgets do painel definidos por configuração em arquivo | Aceito |
 | [0040](0040-graficos-com-primeng-chartjs.md) | Gráficos com o p-chart do PrimeNG (Chart.js) | Aceito |
-| [0041](0041-senha-provisoria-exibida-uma-vez-sem-armazenamento.md) | Senha provisória exibida uma vez, sem armazenamento no front | Aceito |
+| [0041](0041-senha-provisoria-exibida-uma-vez-sem-armazenamento.md) | Senha provisória exibida uma vez, sem armazenamento no front | Substituído pelo 0054 (back-end: login pelo Windows, sem senha) |
 | [0044](0044-simulacao-obrigatoria-antes-de-gravar-estrutura.md) | Simulação obrigatória antes de gravar alterações de estrutura (na interface) | Aceito |
 
 ## No repositório do back-end (citados pelo front)
@@ -40,6 +40,7 @@ Ficam em `docs/adr/` do back-end porque também mudaram a API. Os que o front ma
 | 0047 | Itens relacionados descobertos pelos metadados |
 | 0048 | Importação de planilhas pelo mesmo caminho de gravação do cadastro manual |
 | 0051 | Repositórios separados para o back-end e o front-end, com cópia do contrato no front |
+| 0054 | Login pela autenticação integrada do Windows (AD), sem senha no Catálogo (substitui o 0041) |
 
 Modelo para um ADR novo (`NNNN-titulo-curto.md`):
 

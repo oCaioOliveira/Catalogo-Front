@@ -165,8 +165,8 @@ tratados.
 Cadastro de muitos itens de uma vez, **genérico para qualquer tipo de item** (RN97 a RN104, ADR 0048,
 API em `docs/api/importacao.md` (back-end), guia do usuário em [`guias/importar-planilhas.md`](guias/importar-planilhas.md)).
 
-- **Onde**: na listagem, o botão dividido **Importar** (ao lado de **Exportar**) abre o assistente (`/:grupo/:entidade/importar`) e a
-  seta dele leva a **Importações anteriores** (`/:grupo/:entidade/importacoes`). Aparece para quem pode **criar** ali
+- **Onde**: na listagem, no **⋯ Mais ações** do cabeçalho, **Importar planilha** abre o assistente (`/:grupo/:entidade/importar`) e
+  **Importações anteriores** leva a `/:grupo/:entidade/importacoes`. Aparece para quem pode **criar** ali
   (`PermissoesService.podeCriar`, a mesma regra do "Novo"); o assistente manda para "Sem permissão" quem chega pelo endereço.
 - **Assistente** (`features/importacao/assistente-importacao.component.*`), com as etapas visíveis num `p-stepper` linear e **uma ação
   primária por etapa**, sempre visível na barra fixa do rodapé:
@@ -356,18 +356,13 @@ painel), e a seção "Administração" aparece no fim do menu só para ele. Cód
   ele o campo some, com "Administradores têm acesso a todas as equipes" (RN31). Os erros da API vão para o campo (400 por campo,
   409 de matrícula repetida). Editando o **próprio** usuário, trocar o próprio perfil de administrador pede confirmação (perde a
   administração); depois de salvar, `/auth/eu` é recarregado e o menu muda na hora.
-- **Ações** (listagem e detalhe): **redefinir senha** (confirmação e o diálogo da senha provisória) e **ativar/desativar**
+- **Cadastro**: só pela **matrícula do AD** (com nome, perfil e equipes); não há senha: a pessoa entra pelo login do Windows (RN23).
+  Quem entra sem estar cadastrado vira EXTERNO sem equipe (RN105) e aparece na lista para o administrador dar perfil e equipes.
+- **Ações** (listagem e detalhe): **ativar/desativar**
   (confirmação; desativar encerra o acesso em até 1 minuto). Desativar o **próprio** usuário pede uma segunda confirmação. A recusa
   do último administrador (409 `ULTIMO_ADMINISTRADOR`, RN30) aparece com a mensagem do código.
 - **Detalhe**: dados, situação, último acesso, criado em, equipes com link, e a aba **Histórico** (o componente genérico
-  `shared/historico`, também usado no detalhe de registros), com as equipes pelo nome e a senha só como "redefinida"/"alterada".
-
-### Senha provisória
-
-A API devolve a senha uma única vez (RN25). Ela vai direto para o `SenhaProvisoriaDialogComponent` ([ADR 0041](adr/0041-senha-provisoria-exibida-uma-vez-sem-armazenamento.md)):
-botão Copiar, o aviso "Esta senha não será exibida novamente. Envie ao usuário por um canal seguro. Ele deverá trocá-la no primeiro
-acesso." e **"Já copiei"**, o único jeito de fechar (nem Esc nem clique fora). Ao fechar, a senha é descartada. Ela nunca vai para
-estado global, `localStorage`, `sessionStorage`, URL ou log.
+  `shared/historico`, também usado no detalhe de registros), com as equipes pelo nome (linhas antigas de troca ou redefinição de senha aparecem como "Senha: alterada/redefinida").
 
 ### Equipes
 
@@ -384,8 +379,18 @@ estado global, `localStorage`, `sessionStorage`, URL ou log.
 ## Minha conta
 
 `/minha-conta`, para **todos os perfis** (botão com o ícone de pessoa no cabeçalho): matrícula, nome, perfil (com a descrição) e
-equipes do usuário logado, e **"Trocar senha"**, que reaproveita a tela de troca (agora também voluntária) e volta para cá com
-"Senha alterada.". A sessão continua.
+equipes do usuário logado. Não há troca de senha: o acesso é pelo login do Windows.
+
+## Acesso (login pelo Windows)
+
+Não há tela de login (RN23, ADR 0054 no back-end). No `provideAppInitializer`, o `AuthService.iniciar()` chama `POST /auth/login`
+sem corpo; o `authInterceptor` põe `withCredentials` só nessa chamada (as outras levam `Authorization: Bearer`). O JWT fica no
+`sessionStorage` (ADR 0035). Sem sessão, as rotas levam a `/acesso`:
+
+- **Acesso negado** (401 ou 403 do login) e **Catálogo indisponível** (outro erro ou sem conexão), com "Tentar de novo";
+- **Você saiu**, depois de "Sair" no menu do usuário: não entra sozinho (o Windows entraria na hora), só pelo "Entrar de novo";
+- token expirado ou usuário desativado no meio do uso (401 de qualquer chamada): a tela entra de novo sozinha e volta para onde a
+  pessoa estava (`returnUrl`). Os endereços antigos `/login` e `/trocar-senha` levam à tela inicial.
 
 ## Aprovação e avaliação
 
@@ -419,7 +424,10 @@ não é excluído nem muda de tipo: a tela explica e sugere desativar. Ao lado, 
   alguma equipe que o usuário vê tem a aprovação ligada (`filtrosDeAprovacaoEAvaliacao`).
 - **Detalhe**: `app-faixa-aprovacao` no topo, com a situação e a última decisão (quem, quando, a justificativa inteira). O GESTOR da
   equipe e o ADMINISTRADOR, num item pendente, têm **Aprovar** e **Rejeitar**: um diálogo com a justificativa obrigatória (10 a 1000
-  caracteres, contador, erro no campo). Quem veio da fila (`?daFila=1`) volta para ela depois de decidir.
+  caracteres, contador, erro no campo, `DialogoDecisaoComponent`) e um aviso de sucesso depois de gravar. Quem veio da fila
+  (`?daFila=1`) volta para ela depois de decidir.
+- **Fila** (`/aprovacoes`): cada linha tem **Aprovar** e **Rejeitar**, com o mesmo diálogo: dá para decidir sem abrir o item; a fila
+  e o contador do cabeçalho se atualizam na hora. Abrir o item (para conferir antes) continua levando ao detalhe.
 - **Formulário**: o EXTERNO só escolhe equipes com a aprovação ligada (`equipesParaCriar`) e vê "Este item será enviado para
   aprovação"; editando um rejeitado, o botão vira **"Reenviar para aprovação"**. A mensagem depois de salvar diz que o item foi enviado
   (ou reenviado). Um aprovado não é editável pelo EXTERNO.
@@ -463,7 +471,7 @@ por `getByRole` com o nome do campo. Botões só com ícone têm `ariaLabel` e d
   - Valores em `src/app/tema/tema.ts`, nomes de uso em `fundamentos.scss`. Regras e paleta dos gráficos:
     [guia de interface → Cores](design/guia-de-interface.md#cores).
 - **Tema claro, escuro ou do sistema:**
-  - pode ser escolhido no botão do cabeçalho, no do login e no menu do usuário;
+  - pode ser escolhido no botão do cabeçalho, no da tela de acesso e no menu do usuário;
   - fica salvo no `localStorage` (`catalogo.tema`);
   - o script do `index.html` aplica o tema antes da primeira pintura, para a tela não piscar.
 - **Logo:**

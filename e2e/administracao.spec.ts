@@ -1,12 +1,29 @@
 import { Browser, BrowserContext, Page, expect, test } from '@playwright/test';
-import { cadastrosAlfa, chamar, criar, criarRelatorio, entrarPelaApi, idPor, prefixoUnico, tokenDe } from './apoio/api';
+import {
+  cadastrosAlfa,
+  chamar,
+  criar,
+  criarRelatorio,
+  idPor,
+  prefixoUnico,
+  tokenDaMatricula,
+  tokenDe,
+} from './apoio/api';
 import { habilitarNaListagem, limparE2E } from './apoio/limpeza';
-import { acaoDaLinha, botaoMenuUsuario, capturar, entrarComo, entrarPelaTela, noMenuDoUsuario } from './apoio/sessao';
+import {
+  acaoDaLinha,
+  botaoMenuUsuario,
+  capturar,
+  entrarComo,
+  entrarComoMatricula,
+  noMenuDoUsuario,
+  simularLoginWindows,
+} from './apoio/sessao';
 
 /**
  * Administração de usuários e equipes, e "Minha conta" (docs/frontend.md → "Administração"). Os testes rodam EM SÉRIE e
- * compartilham os dados criados aqui, sempre com um prefixo único. Os usuários dev.* não têm a senha trocada: a troca é feita
- * pelo usuário criado no próprio teste. Capturas em e2e/capturas/admin-*.png (a senha provisória sai MASCARADA).
+ * compartilham os dados criados aqui, sempre com um prefixo único. Não há senha: o usuário é cadastrado pela matrícula do AD e
+ * entra pelo login do Windows, simulado (e2e/apoio/sessao.ts). Capturas em e2e/capturas/admin-*.png.
  * No início e no fim, o helper compartilhado (e2e/apoio/limpeza.ts) desativa a equipe e os usuários de teste.
  */
 test.describe.configure({ mode: 'serial', timeout: 240_000 });
@@ -23,9 +40,6 @@ const prefixo = prefixoUnico();
 const nomeEquipe = `${prefixo} Squad`;
 const matricula = `${prefixo.toLowerCase()}-u1`;
 const nomeUsuario = `Usuária ${prefixo}`;
-/** Todas as senhas que aparecem no teste: nenhuma pode estar no histórico. */
-const senhasVistas: string[] = [];
-let senhaAtual = '';
 let equipeId = '';
 let usuarioId = '';
 let relatorioEquipeNova = '';
@@ -63,40 +77,9 @@ async function abrirMultiselect(page: Page, rotulo: string | RegExp): Promise<vo
   await page.getByRole('combobox', { name: rotulo }).locator('xpath=ancestor::p-multiselect[1]').click();
 }
 
-/** A senha provisória do diálogo (o "Copiar" põe na área de transferência; o teste confere as duas). */
-async function lerSenhaDoDialogo(page: Page): Promise<string> {
-  const dialogo = page.getByRole('dialog', { name: 'Senha provisória' });
-  await expect(dialogo).toBeVisible();
-  await expect(dialogo).toContainText('Esta senha não será exibida novamente. Envie ao usuário por um canal seguro.');
-  const senha = (await dialogo.locator('[data-senha-provisoria]').textContent())!.trim();
-  expect(senha).toHaveLength(16);
-  await dialogo.getByRole('button', { name: 'Copiar' }).click();
-  await expect(dialogo.getByText('Senha copiada.')).toBeVisible();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(senha);
-  senhasVistas.push(senha);
-  return senha;
-}
-
-/** Primeiro acesso (ou depois da redefinição): entra com a provisória e troca por uma definitiva (RN25). */
-async function trocarSenhaObrigatoria(page: Page, provisoria: string): Promise<string> {
-  await entrarPelaTela(page, matricula, provisoria);
-  await expect(page).toHaveURL(/\/trocar-senha/);
-  await expect(page.getByText('troque a senha provisória')).toBeVisible();
-  const nova = `Nova${Date.now()}x`;
-  await page.locator('#senha-atual').fill(provisoria);
-  await page.locator('#nova-senha').fill(nova);
-  await page.locator('#confirmacao').fill(nova);
-  await page.getByRole('button', { name: 'Trocar senha' }).click();
-  await expect(page).not.toHaveURL(/\/trocar-senha/);
-  senhasVistas.push(nova);
-  return nova;
-}
-
-test('1. o ADMINISTRADOR cria uma equipe e um usuário INTERNO em duas equipes, copia a senha provisória e sai', async ({
+test('1. o ADMINISTRADOR cria uma equipe e um usuário INTERNO em duas equipes, só pela matrícula, e sai', async ({
   page,
-  context,
 }) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await entrarComo(page, 'admin', '/');
   // A engrenagem do cabeçalho leva à área de configurações, com menu lateral próprio.
   await page.getByRole('link', { name: 'Configurações', exact: true }).click();
@@ -136,28 +119,18 @@ test('1. o ADMINISTRADOR cria uma equipe e um usuário INTERNO em duas equipes, 
   await capturar(page, 'admin-02-novo-usuario');
 
   await page.getByRole('button', { name: 'Criar usuário' }).click();
-  const provisoria = await lerSenhaDoDialogo(page);
-  // O diálogo não fecha com Esc: só pelo botão.
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog', { name: 'Senha provisória' })).toBeVisible();
-  await page.screenshot({
-    path: `${__dirname}/capturas/admin-03-senha-provisoria.png`,
-    mask: [page.locator('[data-senha-provisoria]')],
-  });
-  await page.getByRole('button', { name: 'Já copiei' }).click();
-  await expect(page.getByRole('dialog', { name: 'Senha provisória' })).toHaveCount(0);
+  // Sem senha provisória: vai direto para o detalhe (a pessoa entra pelo login do Windows).
   await expect(page.getByRole('heading', { name: nomeUsuario })).toBeVisible();
-  await expect(page.locator('body')).not.toContainText(provisoria);
+  await expect(page.getByRole('dialog', { name: 'Senha provisória' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Redefinir senha' })).toHaveCount(0);
+  await expect(page.getByText('Precisa trocar a senha')).toHaveCount(0);
   usuarioId = page.url().split('/').pop()!;
-  senhaAtual = provisoria;
 
   await noMenuDoUsuario(page, 'Sair');
-  await expect(page).toHaveURL(/\/login/);
+  await expect(page).toHaveURL(/\/acesso/);
 });
 
-test('2. o novo usuário entra com a senha provisória, troca a senha e vê os itens das duas equipes', async ({
-  page,
-}) => {
+test('2. o novo usuário entra pelo Windows e vê os itens das duas equipes', async ({ page }) => {
   // Um relatório em cada equipe do usuário (pela API, como administrador). A equipe nova não é habilitada em nenhuma listagem
   // (RN90): habilita em Testes de Desempenho.
   const admin = tokenDe('admin');
@@ -173,14 +146,15 @@ test('2. o novo usuário entra com a senha provisória, troca a senha e vê os i
     ambiente: c.ambiente,
     status_resultado: c.status,
     data_execucao: '2026-10-01T10:00:00-03:00',
-    bateria_testes: `${prefixo} equipe nova`,
-    tipo_teste: 'Carga',
+    titulo: `${prefixo} equipe nova`,
+    bateria_testes: 1,
+    tipo_teste: 'API',
     executado_por: 'Teste E2E',
   });
   relatorioAlfa = await criarRelatorio(admin, `${prefixo} equipe alfa`);
 
-  senhaAtual = await trocarSenhaObrigatoria(page, senhaAtual);
-  await page.goto(`/testes_desempenho/relatorio_teste?bateria_testes.contem=${prefixo}`);
+  await entrarComoMatricula(page, matricula, '/');
+  await page.goto(`/testes_desempenho/relatorio_teste?titulo.contem=${prefixo}`);
   await expect(page.locator('tbody tr')).toHaveCount(2);
   await expect(page.getByRole('cell', { name: `${prefixo} equipe nova`, exact: true })).toBeVisible();
   await expect(page.getByRole('cell', { name: `${prefixo} equipe alfa`, exact: true })).toBeVisible();
@@ -188,24 +162,12 @@ test('2. o novo usuário entra com a senha provisória, troca a senha e vê os i
   await expect(page.getByRole('link', { name: 'Configurações', exact: true })).toHaveCount(0);
 });
 
-test('3. o ADMINISTRADOR redefine a senha: a antiga deixa de funcionar e a nova obriga a troca', async ({
-  page,
-  context,
-  browser,
-}) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-  await entrarComo(page, 'admin', `/configuracoes/usuarios/${usuarioId}`);
-  await page.getByRole('button', { name: 'Redefinir senha' }).click();
-  await confirmacaoAberta(page).getByRole('button', { name: 'Redefinir senha' }).click();
-  const provisoria = await lerSenhaDoDialogo(page);
-  await page.getByRole('button', { name: 'Já copiei' }).click();
-  await expect(page.locator('body')).not.toContainText(provisoria);
-
-  const { contexto, page: usuario } = await novoContexto(browser);
-  await entrarPelaTela(usuario, matricula, senhaAtual);
-  await expect(usuario.getByText('Matrícula ou senha inválidas.')).toBeVisible();
-  senhaAtual = await trocarSenhaObrigatoria(usuario, provisoria);
-  await contexto.close();
+test('3. a lista de usuários não tem mais ações de senha', async ({ page }) => {
+  await entrarComo(page, 'admin', `/configuracoes/usuarios?busca=${matricula}`);
+  await page.getByRole('button', { name: `Ações de ${matricula}`, exact: true }).click();
+  await expect(page.getByRole('menuitem', { name: 'Editar', exact: true })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Redefinir senha' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
 });
 
 test('4. desativar impede o login; reativar devolve o acesso', async ({ page, browser }) => {
@@ -218,14 +180,16 @@ test('4. desativar impede o login; reativar devolve o acesso', async ({ page, br
   await confirmacao.getByRole('button', { name: 'Desativar' }).click();
   await expect(page.locator('tbody tr').first()).toContainText('Inativo');
 
+  // O Windows ainda identifica a pessoa, mas o Catálogo a recusa: acesso negado.
   const { contexto, page: usuario } = await novoContexto(browser);
-  await entrarPelaTela(usuario, matricula, senhaAtual);
-  await expect(usuario.getByText('Matrícula ou senha inválidas.')).toBeVisible();
+  await simularLoginWindows(usuario, tokenDaMatricula(matricula));
+  await usuario.goto('/');
+  await expect(usuario.getByRole('heading', { name: 'Acesso negado' })).toBeVisible();
 
   await acaoDaLinha(page, matricula, 'Ativar');
   await confirmacaoAberta(page).getByRole('button', { name: 'Ativar' }).click();
   await expect(page.locator('tbody tr').first()).toContainText('Ativo');
-  await entrarPelaTela(usuario, matricula, senhaAtual);
+  await usuario.getByRole('button', { name: 'Tentar de novo' }).click();
   await expect(botaoMenuUsuario(usuario)).toBeVisible();
   await contexto.close();
 });
@@ -279,7 +243,9 @@ test('5. último administrador: desativar ou rebaixar mostra a mensagem específ
   await expect(confirmacaoAberta(page)).toContainText('perde o acesso à administração');
   await confirmacaoAberta(page).getByRole('button', { name: 'Salvar mesmo assim' }).click();
   await expect(page.getByText(mensagem)).toBeVisible();
+  // Sem a simulação da recusa; o login pelo Windows (simulado) continua.
   await page.unrouteAll();
+  await simularLoginWindows(page, tokenDe('admin'));
   await page.goto('/configuracoes/usuarios?busca=admin&perfil=ADMINISTRADOR');
   await expect(linhaAdmin).toContainText('Administrador');
   await page.getByRole('link', { name: 'Configurações', exact: true }).click();
@@ -293,7 +259,7 @@ test('5. último administrador: desativar ou rebaixar mostra a mensagem específ
 test('6. desativar uma equipe avisa quantos são afetados; o membro perde e recupera o acesso aos itens dela', async ({
   page,
 }) => {
-  const tokenUsuario = await entrarPelaApi(matricula, senhaAtual);
+  const tokenUsuario = tokenDaMatricula(matricula);
   const ler = (id: string) =>
     chamar(tokenUsuario, 'GET', `/grupos/testes_desempenho/entidades/relatorio_teste/registros/${id}`);
   expect((await ler(relatorioEquipeNova)).status).toBe(200);
@@ -337,9 +303,7 @@ test('6. desativar uma equipe avisa quantos são afetados; o membro perde e recu
   await expect(page.locator('tbody tr').first()).toContainText('Ativa');
 });
 
-test('7. o histórico do usuário mostra criação, mudança de equipes e redefinição de senha, sem nenhum valor de senha', async ({
-  page,
-}) => {
+test('7. o histórico do usuário mostra a criação e a mudança de equipes', async ({ page }) => {
   await entrarComo(page, 'admin', `/configuracoes/usuarios/${usuarioId}/editar`);
   await expect(page.getByRole('textbox', { name: /^Matrícula/ })).toHaveAttribute('readonly', '');
   await abrirMultiselect(page, /^Equipes/);
@@ -353,12 +317,7 @@ test('7. o histórico do usuário mostra criação, mudança de equipes e redefi
   await expect(historico.getByText('Criação')).toBeVisible();
   await expect(historico).toContainText(`Equipes: ${nomeEquipe}, Equipe Alfa`);
   await expect(historico).toContainText('Equipe Beta');
-  await expect(historico).toContainText('Senha:');
-  await expect(historico).toContainText('redefinida');
-  const texto = (await page.locator('body').textContent()) ?? '';
-  for (const senha of senhasVistas) {
-    expect(texto).not.toContain(senha);
-  }
+  await expect(historico).not.toContainText('Senha');
 
   // O detalhe da equipe, com os membros (e o link para cada um).
   await page.goto(`/configuracoes/equipes/${equipeId}`);
@@ -392,38 +351,20 @@ test('8. só o ADMINISTRADOR vê Usuários, Equipes e Áreas de gestão; as rota
   }
 });
 
-test('9. todo perfil acessa "Minha conta", e o usuário troca a própria senha', async ({ page, browser }) => {
+test('9. todo perfil acessa "Minha conta", sem troca de senha', async ({ browser }) => {
   for (const perfil of ['dev.externo', 'dev.interno', 'dev.gestor', 'admin'] as const) {
     const { contexto, page: outra } = await novoContexto(browser);
     await entrarComo(outra, perfil, '/');
     await noMenuDoUsuario(outra, 'Minha conta');
     await expect(outra.getByRole('heading', { name: 'Minha conta' })).toBeVisible();
-    await expect(outra.getByRole('main').getByRole('button', { name: 'Trocar senha' })).toBeVisible();
+    await expect(outra.getByRole('main').getByRole('button', { name: 'Trocar senha' })).toHaveCount(0);
+    await expect(outra.getByText('pelo login do Windows')).toBeVisible();
     if (perfil === 'dev.gestor') {
       await expect(outra.getByText('Cria, edita, exclui e acessa o painel.')).toBeVisible();
       await capturar(outra, 'admin-06-minha-conta');
     }
     await contexto.close();
   }
-
-  // A troca voluntária: com o usuário criado neste teste (a senha dos dev.* não muda).
-  await entrarPelaTela(page, matricula, senhaAtual);
-  await noMenuDoUsuario(page, 'Minha conta');
-  await page.getByRole('main').getByRole('button', { name: 'Trocar senha' }).click();
-  const nova = `Outra${Date.now()}y`;
-  await page.locator('#senha-atual').fill(senhaAtual);
-  await page.locator('#nova-senha').fill(nova);
-  await page.locator('#confirmacao').fill(nova);
-  await page.getByRole('button', { name: 'Trocar senha' }).click();
-  await expect(page.getByText('Senha alterada.')).toBeVisible();
-  await expect(page).toHaveURL(/\/minha-conta$/);
-  // A sessão continua: a tela seguinte abre sem novo login.
-  await page
-    .getByRole('navigation', { name: 'Menu da área de gestão' })
-    .getByRole('link', { name: 'Relatórios de Teste' })
-    .click();
-  await expect(page.locator('tbody tr').first()).toBeVisible();
-  senhaAtual = nova;
 });
 
 test('10. formulário de relatório: cada controle é achado pelo nome do campo (acessibilidade)', async ({ page }) => {
@@ -438,6 +379,7 @@ test('10. formulário de relatório: cada controle é achado pelo nome do campo 
   const papeis: Record<string, 'textbox' | 'spinbutton' | 'combobox' | 'switch'> = {
     TEXTO: 'textbox',
     TEXTO_LONGO: 'textbox',
+    URL: 'textbox',
     INTEIRO: 'spinbutton',
     DECIMAL: 'spinbutton',
     DATA: 'combobox',

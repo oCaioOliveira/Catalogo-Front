@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { API, cadastrosAlfa, chamar, criar, criarRelatorio, idPor, prefixoUnico, tokenDe } from './apoio/api';
-import { campo, capturar, digitarData, entrarComo, escolherReferencia } from './apoio/sessao';
+import { campo, capturar, digitarData, entrarComo, escolherOpcao, escolherReferencia } from './apoio/sessao';
 
 test.describe('Cadastro de relatórios', () => {
   test('cria um relatório completo e adiciona cenários e links no detalhe', async ({ page }) => {
@@ -11,8 +11,14 @@ test.describe('Cadastro de relatórios', () => {
 
     // Validação no front, a partir dos metadados: os obrigatórios vazios aparecem embaixo de cada campo.
     await page.getByRole('button', { name: /^Salvar\b/ }).click();
-    await expect(page.getByText('Corrija os campos destacados.')).toBeVisible();
-    await expect(page.locator('#formulario-bateria_testes-erros')).toHaveText('Campo obrigatório.');
+    await expect(page.getByText(/^Corrija os \d+ campos destacados:$/)).toBeVisible();
+    // O resumo lista os campos com erro, e cada um leva ao próprio campo.
+    await page
+      .getByRole('list', { name: 'Campos com erro' })
+      .getByRole('link', { name: 'Título', exact: true })
+      .click();
+    await expect(campo(page, /^Título/)).toBeFocused();
+    await expect(page.locator('#formulario-titulo-erros')).toHaveText('Campo obrigatório.');
     await capturar(page, '03-novo-relatorio-com-erros');
 
     await escolherReferencia(page, /^Projeto/, 'Transfer', 'Transferências Alfa');
@@ -20,8 +26,9 @@ test.describe('Cadastro de relatórios', () => {
     await escolherReferencia(page, /^Ambiente/, 'Homolog', 'Homologação');
     await escolherReferencia(page, /^Status/, 'Aprovado', /^Aprovado$/);
     await digitarData(page, /^Data de execução/, '15/09/2026 10:30');
-    await campo(page, /^Bateria de testes/).fill(`${prefixo} completo`);
-    await campo(page, /^Tipo de teste/).fill('Carga');
+    await campo(page, /^Título/).fill(`${prefixo} completo`);
+    await campo(page, /^Nº da bateria/).fill('1');
+    await escolherOpcao(page, /^Tecnologia/, 'API');
     await campo(page, /^Executado por/).fill('Equipe E2E');
     await campo(page, /^Objetivo/).fill('Validar a vazão da transferência.');
     await page.getByRole('button', { name: /^Salvar\b/ }).click();
@@ -90,7 +97,7 @@ test.describe('Cadastro de relatórios', () => {
 
     await expect(page.locator('#formulario-rtc-erros')).toBeVisible();
     await expect(campo(page, /^RTC/)).toHaveAttribute('aria-invalid', 'true');
-    await expect(page.locator('#formulario-bateria_testes-erros')).toHaveCount(0);
+    await expect(page.locator('#formulario-titulo-erros')).toHaveCount(0);
   });
 
   test('conflito de concorrência: duas abas editando o mesmo item', async ({ page, context }) => {
@@ -100,10 +107,10 @@ test.describe('Cadastro de relatórios', () => {
     const outraAba = await context.newPage();
     await entrarComo(page, 'dev.gestor', url);
     await entrarComo(outraAba, 'dev.gestor', url);
-    await expect(campo(page, /^Tipo de teste/)).toHaveValue('Carga');
-    await expect(campo(outraAba, /^Tipo de teste/)).toHaveValue('Carga');
+    await expect(campo(page, /^Comunidade na execução/)).toHaveValue('');
+    await expect(campo(outraAba, /^Comunidade na execução/)).toHaveValue('');
 
-    await campo(page, /^Tipo de teste/).fill('Estresse');
+    await campo(page, /^Comunidade na execução/).fill('Pagamentos');
     await page.getByRole('button', { name: 'Salvar alterações' }).click();
     await expect(page.getByText('Alterações salvas.')).toBeVisible();
 
@@ -113,7 +120,7 @@ test.describe('Cadastro de relatórios', () => {
     await expect(aviso).toBeVisible();
     await aviso.getByRole('button', { name: /Recarregar/ }).click();
     await expect(aviso).toBeHidden();
-    await expect(campo(outraAba, /^Tipo de teste/)).toHaveValue('Estresse');
+    await expect(campo(outraAba, /^Comunidade na execução/)).toHaveValue('Pagamentos');
   });
 
   test('excluir um relatório com cenários avisa que os filhos vão junto', async ({ page }) => {
@@ -136,7 +143,9 @@ test.describe('Cadastro de relatórios', () => {
     }
 
     await entrarComo(page, 'dev.gestor', `/testes_desempenho/relatorio_teste/${relatorio}`);
-    await page.locator('.cabecalho-pagina').getByRole('button', { name: 'Excluir' }).click();
+    // Excluir é ação secundária: fica no "⋯ Mais ações" do cabeçalho (a principal, Editar, fica em destaque).
+    await page.locator('.cabecalho-pagina').getByRole('button', { name: 'Mais ações' }).click();
+    await page.getByRole('menuitem', { name: 'Excluir' }).click();
     const confirmacao = page.getByRole('alertdialog', { name: 'Excluir item' });
     await expect(confirmacao).toContainText('também serão excluídos');
     await expect(confirmacao).toContainText('Cenário de Teste');

@@ -2,7 +2,7 @@ import { Page, expect, test } from '@playwright/test';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { idPor, tokenDe } from './apoio/api';
-import { entrarComo } from './apoio/sessao';
+import { entrarComo, simularSemWindows } from './apoio/sessao';
 
 /**
  * Capturas "antes e depois" da etapa de design e usabilidade (e2e/capturas/design/). A fase vem de CAPTURA_FASE ("antes" ou
@@ -46,12 +46,13 @@ for (const tema of temas) {
     test.setTimeout(180_000);
     const projeto = await idPor(tokenDe('admin'), 'projeto', 'nome', 'Transferências Alfa');
 
-    // Login (sem sessão).
+    // Tela de acesso (sem sessão: o login pelo Windows foi recusado).
     const anonimo = await browser.newPage({ viewport: { width: 1366, height: 768 } });
     await usarTema(anonimo, tema);
-    await anonimo.goto('/login');
-    await expect(anonimo.getByRole('button', { name: 'Entrar' })).toBeVisible();
-    await capturarDesign(anonimo, '01-login', tema);
+    await simularSemWindows(anonimo);
+    await anonimo.goto('/acesso');
+    await expect(anonimo.getByRole('heading', { name: 'Acesso negado' })).toBeVisible();
+    await capturarDesign(anonimo, '01-acesso', tema);
     await anonimo.close();
 
     await usarTema(page, tema);

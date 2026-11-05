@@ -24,10 +24,10 @@ test('EXTERNO não vê os botões de criar, editar e excluir (RN26)', async ({ p
 test('exporta a listagem em CSV com os filtros atuais', async ({ page }) => {
   const prefixo = prefixoUnico();
   await criarRelatorio(tokenDe('dev.gestor'), `${prefixo} exportação`);
-  await entrarComo(page, 'dev.gestor', `/testes_desempenho/relatorio_teste?bateria_testes.contem=${prefixo}`);
+  await entrarComo(page, 'dev.gestor', `/testes_desempenho/relatorio_teste?titulo.contem=${prefixo}`);
   await expect(page.locator('tbody tr')).toHaveCount(1);
 
-  await page.getByRole('button', { name: 'Exportar' }).click();
+  await page.getByRole('button', { name: 'Mais ações' }).click();
   const download = page.waitForEvent('download');
   await page.getByRole('menuitem', { name: 'Arquivo CSV (.csv)', exact: true }).click();
   const arquivo = await download;
@@ -35,7 +35,7 @@ test('exporta a listagem em CSV com os filtros atuais', async ({ page }) => {
   expect(arquivo.suggestedFilename()).toMatch(/^relatorio_teste_\d{4}-\d{2}-\d{2}\.csv$/);
   const conteudo = readFileSync(await arquivo.path(), 'utf8');
   const linhas = conteudo.replace(/^﻿/, '').trim().split(/\r?\n/);
-  expect(linhas[0]).toContain('Bateria de testes');
+  expect(linhas[0]).toContain('Título');
   expect(linhas).toHaveLength(2);
   expect(linhas[1]).toContain(`${prefixo} exportação`);
 });

@@ -16,12 +16,17 @@ const pasta = join(__dirname, 'capturas', 'exportacao');
 
 test.use({ viewport: { width: 1366, height: 768 } });
 
-async function conferirMenu(page: Page, botao: Locator): Promise<Locator> {
+/** `soExportar` = o menu só tem as duas opções (painel); senão, elas são as últimas (o "⋯ Mais ações" da listagem tem a importação antes). */
+async function conferirMenu(page: Page, botao: Locator, soExportar = true): Promise<Locator> {
   await botao.click();
   const itens = page.getByRole('menuitem');
-  await expect(itens).toHaveCount(2);
   // Rótulos exatos, nesta ordem.
-  expect((await itens.allInnerTexts()).map((t) => t.trim())).toEqual([PLANILHA, CSV]);
+  const textos = (await itens.allInnerTexts()).map((t) => t.trim());
+  if (soExportar) {
+    expect(textos).toEqual([PLANILHA, CSV]);
+  } else {
+    expect(textos.slice(-2)).toEqual([PLANILHA, CSV]);
+  }
   await expect(page.getByRole('menuitem', { name: PLANILHA, exact: true })).toBeVisible();
   const csv = page.getByRole('menuitem', { name: CSV, exact: true });
   // A dica aparece ao passar o mouse no CSV.
@@ -40,7 +45,7 @@ for (const tema of ['claro', 'escuro'] as Tema[]) {
 
     await entrarComo(page, 'dev.gestor', `/${GRUPO}/relatorio_teste`);
     await expect(page.locator('tbody tr').first()).toBeVisible();
-    await conferirMenu(page, page.getByRole('button', { name: 'Exportar', exact: true }));
+    await conferirMenu(page, page.getByRole('button', { name: 'Mais ações' }), false);
     await page.screenshot({ path: join(pasta, `menu-listagem-${tema}.png`) });
     await page.keyboard.press('Escape');
 

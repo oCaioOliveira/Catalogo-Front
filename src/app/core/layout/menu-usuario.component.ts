@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, viewChild } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { Popover } from 'primeng/popover';
 import { Tooltip } from 'primeng/tooltip';
 import { OPCOES_TEMA, PreferenciaTema } from '../../tema/preferencia-tema';
@@ -9,7 +9,7 @@ import { NOMES_PERFIL } from '../auth/usuario';
 import { iniciais } from './navegacao';
 
 /**
- * O menu do usuário no canto do cabeçalho: o avatar com as iniciais abre Minha conta, Trocar senha, o Tema (claro, escuro ou
+ * O menu do usuário no canto do cabeçalho: o avatar com as iniciais abre Minha conta, o Tema (claro, escuro ou
  * seguir o sistema, num grupo de rádio) e Sair. É um popover (não um p-menu): o tema precisa de rádios de verdade, que o leitor de
  * tela anuncia com o estado.
  */
@@ -47,11 +47,6 @@ import { iniciais } from './navegacao';
                 ><i class="pi pi-user" aria-hidden="true"></i> Minha conta</a
               >
             </li>
-            <li>
-              <button type="button" (click)="menu.hide(); trocarSenha()">
-                <i class="pi pi-key" aria-hidden="true"></i> Trocar senha
-              </button>
-            </li>
           </ul>
           <fieldset class="escolha-tema">
             <legend>Tema</legend>
@@ -80,7 +75,6 @@ import { iniciais } from './navegacao';
 export class MenuUsuarioComponent {
   readonly auth = inject(AuthService);
   readonly tema = inject(TemaService);
-  private readonly router = inject(Router);
   readonly popover = viewChild<Popover>('menu');
 
   readonly opcoesTema = OPCOES_TEMA;
@@ -92,9 +86,5 @@ export class MenuUsuarioComponent {
 
   escolherTema(preferencia: PreferenciaTema): void {
     this.tema.escolher(preferencia);
-  }
-
-  trocarSenha(): void {
-    void this.router.navigate(['/trocar-senha'], { queryParams: { returnUrl: this.router.url } });
   }
 }

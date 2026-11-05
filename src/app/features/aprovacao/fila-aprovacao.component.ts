@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -27,13 +36,15 @@ import { CabecalhoPaginaComponent } from '../../shared/pagina/cabecalho-pagina.c
 import { cliqueAbreLinha } from '../../shared/tabelas/colunas-tabela';
 import { DensidadeService } from '../../shared/tabelas/densidade.service';
 import { SombraRolagemDirective } from '../../shared/tabelas/sombra-rolagem.directive';
+import { Decisao, DialogoDecisaoComponent } from './dialogo-decisao.component';
 
 /**
  * /aprovacoes — a fila de itens pendentes que o usuário pode decidir (RN36): os mais antigos primeiro, com tipo de item, rótulo,
  * equipe, autor e há quanto tempo aguarda. Filtros por área de gestão, tipo de item e equipe na URL (?grupo=&entidade=&equipeId=&pagina=).
  * Sem área na URL, a fila abre filtrada na ÁREA ATUAL, com a opção "Todas as áreas" (?todas=1); escolher uma área
  * aqui muda a área atual, e trocar no cabeçalho muda aqui.
- * Abrir um item leva ao detalhe, onde ficam Aprovar e Rejeitar; depois da decisão, o detalhe volta para esta fila.
+ * Cada linha tem Aprovar e Rejeitar, com o mesmo diálogo do detalhe (justificativa obrigatória, DialogoDecisaoComponent): dá para
+ * decidir sem sair da fila, que se atualiza na hora. Abrir o item leva ao detalhe (para conferir antes), que volta para esta fila.
  */
 @Component({
   selector: 'app-fila-aprovacao',
@@ -48,6 +59,7 @@ import { SombraRolagemDirective } from '../../shared/tabelas/sombra-rolagem.dire
     EstadoErroComponent,
     EstadoVazioComponent,
     SombraRolagemDirective,
+    DialogoDecisaoComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './fila-aprovacao.component.html',
@@ -141,6 +153,21 @@ export class FilaAprovacaoComponent {
     }
     this.areaAtual.definir(valor);
     this.filtrar({ grupo: valor });
+  }
+
+  private readonly dialogo = viewChild.required(DialogoDecisaoComponent);
+
+  /** Aprovar ou Rejeitar direto na fila: o diálogo pede a justificativa (RN36). */
+  decidir(item: Pendente, decisao: Decisao): void {
+    this.dialogo().abrir(
+      { grupo: item.grupo, entidade: item.entidade.chave, id: item.id, rotulo: item.rotulo },
+      decisao,
+    );
+  }
+
+  /** Decidido: a fila (e o contador do cabeçalho, pelo diálogo) se atualiza na hora. */
+  aoDecidir(): void {
+    void this.carregar();
   }
 
   abrir(item: Pendente, evento: MouseEvent): void {

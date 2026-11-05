@@ -1,14 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  inject,
-  input,
-  signal,
-  untracked,
-  viewChild,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -26,7 +16,6 @@ import { Perfil } from '../../../core/auth/usuario';
 import { tratarNoComponente } from '../../../core/erros/contexto-erros';
 import { mensagemDoErro } from '../../../core/erros/mensagens-erro';
 import { lerProblema } from '../../../core/erros/problema';
-import { SenhaProvisoriaDialogComponent } from '../comum/senha-provisoria-dialog.component';
 import {
   DESCRICOES_PERFIL,
   EXPLICACAO_ADMINISTRADOR,
@@ -44,7 +33,7 @@ type CampoUsuario = 'matricula' | 'nome' | 'perfil' | 'equipes';
 /**
  * /configuracoes/usuarios/novo e /configuracoes/usuarios/:id/editar. Matrícula obrigatória no cadastro e somente leitura na edição; equipes
  * (só as ativas) obrigatórias para quem não é ADMINISTRADOR, e escondidas para ele (RN31). Os erros da API aparecem no campo
- * (400 por campo; 409 de matrícula repetida). Criado o usuário, a senha provisória aparece UMA vez no diálogo (ADR 0041).
+ * (400 por campo; 409 de matrícula repetida). Não há senha: a matrícula é a do AD, e o usuário entra pelo login do Windows (RN23).
  */
 @Component({
   selector: 'app-formulario-usuario',
@@ -59,7 +48,6 @@ type CampoUsuario = 'matricula' | 'nome' | 'perfil' | 'equipes';
     MultiSelect,
     Select,
     Skeleton,
-    SenhaProvisoriaDialogComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './formulario-usuario.component.html',
@@ -73,7 +61,6 @@ export class FormularioUsuarioComponent {
   private readonly router = inject(Router);
   private readonly confirmacao = inject(ConfirmationService);
   private readonly mensagens = inject(MessageService);
-  private readonly dialogoSenha = viewChild.required(SenhaProvisoriaDialogComponent);
 
   readonly formulario = new FormGroup({
     matricula: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(20)] }),
@@ -200,21 +187,15 @@ export class FormularioUsuarioComponent {
         await this.depoisDeSalvarOProprio(original.id);
         void this.router.navigate(['/configuracoes/usuarios', original.id]);
       } else {
-        const { usuario, senhaProvisoria } = await this.administracao.criarUsuario(dados, tratarNoComponente(400, 409));
-        this.original.set(usuario);
-        // Direto para o diálogo; ao fechar, vai para o detalhe (a senha não é guardada em lugar nenhum).
-        this.dialogoSenha().mostrar(senhaProvisoria, `${usuario.nome} (${usuario.matricula})`);
+        const usuario = await this.administracao.criarUsuario(dados, tratarNoComponente(400, 409));
+        this.mensagens.add({ severity: 'success', summary: 'Usuário criado.' });
+        void this.router.navigate(['/configuracoes/usuarios', usuario.id]);
       }
     } catch (erro) {
       this.mostrarErrosDaApi(erro);
     } finally {
       this.salvando.set(false);
     }
-  }
-
-  aoFecharSenha(): void {
-    const criado = this.original();
-    void this.router.navigate(criado ? ['/configuracoes/usuarios', criado.id] : ['/configuracoes/usuarios']);
   }
 
   /** Editou o próprio usuário: recarrega /auth/eu (perfil e equipes do menu); se deixou de ser administrador, sai da área. */

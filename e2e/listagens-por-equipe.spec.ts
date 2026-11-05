@@ -76,8 +76,9 @@ async function criarRelatorioNaEquipe(equipeId: string, letra: string): Promise<
     ambiente: await idPor(admin(), 'ambiente', 'nome', 'Homologação'),
     status_resultado: await idPor(admin(), 'status_resultado', 'descricao', 'Aprovado'),
     data_execucao: '2026-10-01T10:00:00-03:00',
-    bateria_testes: bateria,
-    tipo_teste: 'Carga',
+    titulo: bateria,
+    bateria_testes: 1,
+    tipo_teste: 'API',
     executado_por: 'Equipe E2E',
   });
 }
@@ -103,7 +104,7 @@ async function retratoDe(usuario: UsuarioDev): Promise<Record<string, string[]>>
 const USUARIOS_DEV: UsuarioDev[] = ['dev.externo', 'dev.interno', 'dev.gestor'];
 
 test.beforeAll(async () => {
-  // Três logins: se outro arquivo já gastou o limite do minuto (RN23), um deles espera 61 s.
+  // Cria as equipes e os três usuários do arquivo (o login pelo Windows é simulado).
   test.setTimeout(300_000);
   await limparE2E(admin());
   for (const usuario of USUARIOS_DEV) {
@@ -260,7 +261,8 @@ test('3. o GESTOR de T e D alterna entre as listagens; ao criar, a equipe é só
   // A API confere: D não está habilitada em Testes de Desempenho, então não é "equipe dele" ali (RN91: 403, como uma equipe alheia).
   const emD = await chamar(gestor.token, 'POST', `/grupos/${GRUPO_TESTES}/entidades/relatorio_teste/registros`, {
     equipeId: equipeD,
-    bateria_testes: 'não deve gravar',
+    titulo: 'não deve gravar',
+    bateria_testes: 1,
   });
   expect(emD.status).toBe(403);
   await pagina.context().close();
@@ -272,7 +274,7 @@ test('4. com T e D habilitadas em Testes, o GESTOR vê a coluna e o filtro de Eq
   await habilitarNaListagem(admin(), GRUPO_TESTES, equipeD);
   try {
     await criarRelatorioNaEquipe(equipeD, 'D');
-    const lista = `/${GRUPO_TESTES}/relatorio_teste?bateria_testes.contem=${prefixo}`;
+    const lista = `/${GRUPO_TESTES}/relatorio_teste?titulo.contem=${prefixo}`;
     const pagina = await abrirComo(browser, gestor.token, lista);
     const linhas = pagina.locator('tbody tr');
     await expect(linhas).toHaveCount(2);
@@ -406,28 +408,28 @@ test('6. tirar D da listagem de Tasks: a simulação diz quantos itens ficam ocu
   await outraVez.context().close();
 });
 
-test('7. regressão: os usuários dev.* veem os Testes de Desempenho com os mesmos itens, agora sem a aba Avaliações', async ({
+test('7. regressão: os usuários dev.* veem os Testes de Desempenho com os mesmos itens, e a aba Avaliações só com modelo ativo', async ({
   page,
 }) => {
   for (const usuario of USUARIOS_DEV) {
     expect(await gruposDe(tokenDe(usuario)), usuario).toContain(GRUPO_TESTES);
     expect(await gruposDe(tokenDe(usuario)), usuario).not.toContain(GRUPO);
     expect(await retratoDe(usuario), usuario).toEqual(retratoDev[usuario]);
-    // Nenhum critério de avaliação ativo nas equipes deles (os modelos da Alfa e da Beta foram desligados).
-    const entidades = (
-      await chamar<{ chave: string; criteriosAvaliacao: unknown[] }[]>(
-        tokenDe(usuario),
-        'GET',
-        `/grupos/${GRUPO_TESTES}/entidades`,
-      )
-    ).corpo;
-    expect(entidades.find((e) => e.chave === 'relatorio_teste')?.criteriosAvaliacao ?? [], usuario).toEqual([]);
   }
+  // A aba Avaliações segue os metadados (ADR 0045): aparece só se a equipe do gestor tiver um modelo ativo (o banco local pode ter).
+  const entidades = (
+    await chamar<{ chave: string; criteriosAvaliacao: unknown[] }[]>(
+      tokenDe('dev.gestor'),
+      'GET',
+      `/grupos/${GRUPO_TESTES}/entidades`,
+    )
+  ).corpo;
+  const comAvaliacao = (entidades.find((e) => e.chave === 'relatorio_teste')?.criteriosAvaliacao ?? []).length > 0;
 
   await entrarComo(page, 'dev.gestor', `/${GRUPO_TESTES}/relatorio_teste`);
   await expect(page.getByRole('columnheader', { name: 'Equipe', exact: true })).toHaveCount(0);
   await page.locator('tbody tr').first().getByRole('link').first().click();
   await expect(page.getByRole('tab', { name: 'Dados' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Histórico' })).toBeVisible();
-  await expect(page.getByRole('tab', { name: 'Avaliações' })).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: 'Avaliações' })).toHaveCount(comAvaliacao ? 1 : 0);
 });

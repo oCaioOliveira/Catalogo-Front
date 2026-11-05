@@ -3,7 +3,6 @@
 
 import { EquipeResumoDto } from '../models/equipe-resumo-dto';
 export interface UsuarioLogadoDto {
-  deveTrocarSenha?: boolean;
   equipes?: Array<EquipeResumoDto> | null;
   id?: string;
   matricula?: string | null;

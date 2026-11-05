@@ -26,14 +26,27 @@ abaixo supõem um clone dele ao lado deste, em `../SDCAT-BACKEND`.
   ```
 
   A API sobe em `http://localhost:5080` (porta do perfil `Development` em `backend/src/Catalogo.Api/Properties/launchSettings.json`).
-- Um **administrador** no banco. Se ainda não houver, crie com o comando `criar-admin` do back-end (a senha vem de variável de
-  ambiente e nunca fica em arquivo versionado):
+- Um **administrador** no banco. Se ainda não houver, crie com o comando `criar-admin` do back-end (sem senha: o login é o do
+  Windows, ADR 0054):
 
   ```bash
   cd ../SDCAT-BACKEND/backend
-  CATALOGO_ADMIN_SENHA='<senha com 10+ caracteres, letras e números>' \
-    dotnet run --project src/Catalogo.Api --launch-profile Development -- criar-admin --matricula admin --nome "Administrador"
+  dotnet run --project src/Catalogo.Api --launch-profile Development -- criar-admin --matricula admin --nome "Administrador"
   ```
+
+## Login pelo Windows
+
+Não há tela de login: ao abrir, o front chama `POST /api/v1/auth/login` com `withCredentials` (o navegador manda o usuário do
+Windows) e guarda o JWT. Se a API recusar ou não responder, a tela `/acesso` mostra "Acesso negado" ou "Catálogo indisponível", com
+"Tentar de novo". No servidor, a URL da API precisa estar no `CORS_ALLOW` com a origem **exata** do front, e o site da API no IIS
+com a Autenticação do Windows ligada (back-end, `docs/seguranca.md`).
+
+No WSL/Linux não há Kerberos, então o login de verdade não funciona localmente com a API no Linux. Para usar a tela, gere um token do
+banco local e cole no `sessionStorage` (chave `catalogo.token`), ou use os E2E:
+
+```bash
+node tools/token-local.mjs admin    # token de um usuário do banco local (SQL Server do Docker)
+```
 
 ## Instalação e execução
 
@@ -88,17 +101,16 @@ out/2026 (ambientes, status, tipos e medidas variados). É **idempotente**: roda
 o que existe.
 
 ```bash
-CATALOGO_ADMIN_SENHA='<senha do admin>' CATALOGO_SENHA_DEV='<senha para os usuários dev.*>' npm run dados-dev
+npm run dados-dev
 ```
 
 | Variável | Para quê |
 |---|---|
-| `CATALOGO_ADMIN_SENHA` | senha do administrador que roda o script (obrigatória) |
-| `CATALOGO_SENHA_DEV` | senha definida para os usuários `dev.*` criados (obrigatória; 10+ caracteres, letras e números) |
 | `CATALOGO_ADMIN_MATRICULA` | matrícula do administrador (padrão `admin`) |
 | `CATALOGO_API` | URL da API (padrão `http://localhost:5080`) |
+| `CATALOGO_DB_CONTAINER`, `CATALOGO_DB` | container e banco locais de onde sai o token (padrão `listagem-generica-db` e `ListagemGenerica`) |
 
-Usuários que já existem não têm a senha alterada.
+O script usa o token do administrador gerado com a chave do banco local (`tools/token-local.mjs`): não há senha.
 
 ## Testes
 
@@ -112,11 +124,14 @@ Karma + Jasmine (o executor padrão do `ng new` na v20), em modo headless, no Ch
 
 ### E2E (Playwright)
 
-Precisam do banco, da API e dos dados de exemplo (`npm run dados-dev`), com as **mesmas** senhas:
+Precisam do banco (Docker local), da API e dos dados de exemplo (`npm run dados-dev`):
 
 ```bash
-CATALOGO_ADMIN_SENHA='<senha do admin>' CATALOGO_SENHA_DEV='<senha dos dev.*>' npm run e2e
+npm run e2e
 ```
+
+O login pelo Windows é **simulado**: o `POST /auth/login` responde, no navegador, com um JWT de verdade do banco local
+(`e2e/apoio/sessao.ts` → `simularLoginWindows`, `tools/token-local.mjs`); o resto da API é o real.
 
 O `npm run e2e` **compila o front** (`npm run build`) e o serve na porta **4300** (`scripts/servir-build.mjs`, com o mesmo proxy de
 `/api` do `npm start`). Assim cada rodada testa exatamente o código atual. Variações:

@@ -38,8 +38,9 @@ autor e quem decide o veem.
 
 ![A fila de aprovação, com o contador no menu](imagens/aprov-03-fila-com-contador.png)
 
-**Aprovar ou rejeitar.** Abra o item: no topo há uma faixa com a situação e os botões **Aprovar** e **Rejeitar**. Os dois pedem uma
-**justificativa** (de 10 a 1000 caracteres). Ela fica guardada e aparece para o autor. Depois de decidir, você volta para a fila.
+**Aprovar ou rejeitar.** Direto na fila, cada item tem **Aprovar** e **Rejeitar**. Se quiser conferir antes, abra o item: no topo há
+uma faixa com a situação e os mesmos botões. Os dois pedem uma **justificativa** (de 10 a 1000 caracteres). Ela fica guardada e aparece
+para o autor. Depois de decidir, aparece a confirmação e você continua (ou volta) na fila.
 
 ![O diálogo de rejeição, com a justificativa](imagens/aprov-04-dialogo-rejeicao.png)
 

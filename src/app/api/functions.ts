@@ -49,8 +49,6 @@ export type { ApiV1AprovacoesPendentesGet$Params as ApiV1AprovacoesPendentesGet$
 export { apiV1AprovacoesPendentesGet as apiV1AprovacoesPendentesGet } from './fn/aprovacoes/api-v-1-aprovacoes-pendentes-get';
 export type { ApiV1AuthLoginPost$Params as ApiV1AuthLoginPost$Params } from './fn/auth/api-v-1-auth-login-post';
 export { apiV1AuthLoginPost as apiV1AuthLoginPost } from './fn/auth/api-v-1-auth-login-post';
-export type { ApiV1AuthTrocarSenhaPost$Params as ApiV1AuthTrocarSenhaPost$Params } from './fn/auth/api-v-1-auth-trocar-senha-post';
-export { apiV1AuthTrocarSenhaPost as apiV1AuthTrocarSenhaPost } from './fn/auth/api-v-1-auth-trocar-senha-post';
 export type { ApiV1AuthEuGet$Params as ApiV1AuthEuGet$Params } from './fn/auth/api-v-1-auth-eu-get';
 export { apiV1AuthEuGet as apiV1AuthEuGet } from './fn/auth/api-v-1-auth-eu-get';
 export type { ApiV1GruposGrupoEntidadesEntidadeRegistrosIdAvaliacoesGet$Params as ApiV1GruposGrupoEntidadesEntidadeRegistrosIdAvaliacoesGet$Params } from './fn/avaliacoes/api-v-1-grupos-grupo-entidades-entidade-registros-id-avaliacoes-get';
@@ -161,7 +159,5 @@ export type { ApiV1UsuariosIdPut$Params as ApiV1UsuariosIdPut$Params } from './f
 export { apiV1UsuariosIdPut as apiV1UsuariosIdPut } from './fn/usuarios/api-v-1-usuarios-id-put';
 export type { ApiV1UsuariosIdAtivacaoPatch$Params as ApiV1UsuariosIdAtivacaoPatch$Params } from './fn/usuarios/api-v-1-usuarios-id-ativacao-patch';
 export { apiV1UsuariosIdAtivacaoPatch as apiV1UsuariosIdAtivacaoPatch } from './fn/usuarios/api-v-1-usuarios-id-ativacao-patch';
-export type { ApiV1UsuariosIdRedefinirSenhaPost$Params as ApiV1UsuariosIdRedefinirSenhaPost$Params } from './fn/usuarios/api-v-1-usuarios-id-redefinir-senha-post';
-export { apiV1UsuariosIdRedefinirSenhaPost as apiV1UsuariosIdRedefinirSenhaPost } from './fn/usuarios/api-v-1-usuarios-id-redefinir-senha-post';
 export type { ApiV1UsuariosIdHistoricoGet$Params as ApiV1UsuariosIdHistoricoGet$Params } from './fn/usuarios/api-v-1-usuarios-id-historico-get';
 export { apiV1UsuariosIdHistoricoGet as apiV1UsuariosIdHistoricoGet } from './fn/usuarios/api-v-1-usuarios-id-historico-get';

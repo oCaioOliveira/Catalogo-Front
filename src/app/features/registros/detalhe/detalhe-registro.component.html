@@ -1,8 +1,11 @@
 @if (naoEncontrado()) {
-  <p-message severity="warn"
-    >Este item não está disponível: ele pode ter sido excluído, ou você não tem acesso a ele.</p-message
+  <app-estado-vazio
+    icone="pi-eye-slash"
+    titulo="Este item não está disponível"
+    texto="Ele pode ter sido excluído, ou você não tem acesso a ele."
   >
-  <p><a [routerLink]="['/', grupo(), entidade()]">Voltar para a lista</a></p>
+    <p-button label="Voltar para a lista" icon="pi pi-arrow-left" [routerLink]="['/', grupo(), entidade()]" />
+  </app-estado-vazio>
 } @else if (erro()) {
   <app-estado-erro mensagem="Não foi possível carregar o item." (tentarDeNovo)="tentarDeNovo()" />
 } @else if (meta() && registro()) {
@@ -12,9 +15,7 @@
     @if (permissoes.podeEditar(m, r)) {
       <p-button acoes label="Editar" icon="pi pi-pencil" [routerLink]="['editar']" />
     }
-    @if (permissoes.podeExcluir(m, r)) {
-      <p-button acoes label="Excluir" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="excluir()" />
-    }
+    <app-mais-acoes acoes [itens]="maisAcoes()" />
   </app-cabecalho-pagina>
   <app-faixa-aprovacao [grupo]="grupo()" [entidade]="m" [registro]="r" (decidido)="aoDecidir($event)" />
 

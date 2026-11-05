@@ -92,7 +92,7 @@ export class DetalheEquipeComponent {
   }
 
   situacao(usuario: UsuarioAdmin) {
-    return situacaoDoUsuario(usuario, new Date());
+    return situacaoDoUsuario(usuario);
   }
 
   outrasEquipes(usuario: UsuarioAdmin): string {

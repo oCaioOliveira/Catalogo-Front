@@ -3,7 +3,7 @@ import { Locator, Page, expect, test } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { GRUPO } from './apoio/api';
-import { entrarComo } from './apoio/sessao';
+import { entrarComo, simularSemWindows } from './apoio/sessao';
 
 /**
  * Identidade CAIXA (logo e paleta) e o atalho de tema no cabeçalho e no login. Capturas em e2e/capturas/marca/ (fora do git),
@@ -66,11 +66,12 @@ function logoDoCabecalho(page: Page) {
 }
 
 for (const tema of TEMAS) {
-  test(`a logo aparece no cabeçalho e no login, com alt="CAIXA" (tema ${tema})`, async ({ page, browser }) => {
+  test(`a logo aparece no cabeçalho e na tela de acesso, com alt="CAIXA" (tema ${tema})`, async ({ page, browser }) => {
     const contexto = await browser.newContext({ viewport: { width: 1366, height: 768 } });
     const anonimo = await contexto.newPage();
     await comTema(anonimo, tema);
-    await anonimo.goto('/login');
+    await simularSemWindows(anonimo);
+    await anonimo.goto('/acesso');
     const logoLogin = anonimo.getByRole('img', { name: 'CAIXA' });
     await expect(logoLogin).toBeVisible();
     await expect(logoLogin).toHaveAttribute('alt', 'CAIXA');
@@ -168,9 +169,10 @@ test('o botão de tema do cabeçalho alterna claro → escuro → sistema, e a e
   await nova.close();
 });
 
-test('o botão de tema do login alterna os modos, e a escolha fica ao recarregar', async ({ page }) => {
+test('o botão de tema da tela de acesso alterna os modos, e a escolha fica ao recarregar', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' });
-  await page.goto('/login');
+  await simularSemWindows(page);
+  await page.goto('/acesso');
   const botao = page.getByRole('button', { name: /^Tema:/ });
   await expect(botao).toHaveAccessibleName('Tema: seguir o sistema. Mudar para claro');
   await botao.click();
@@ -190,9 +192,10 @@ for (const tema of TEMAS) {
     const contexto = await browser.newContext({ viewport: { width: 1366, height: 768 } });
     const anonimo = await contexto.newPage();
     await comTema(anonimo, tema);
-    await anonimo.goto('/login');
-    await expect(anonimo.getByRole('button', { name: 'Entrar' })).toBeVisible();
-    await conferirContraste(anonimo, 'login');
+    await simularSemWindows(anonimo);
+    await anonimo.goto('/acesso');
+    await expect(anonimo.getByRole('heading', { name: 'Acesso negado' })).toBeVisible();
+    await conferirContraste(anonimo, 'acesso');
     await contexto.close();
 
     await comTema(page, tema);

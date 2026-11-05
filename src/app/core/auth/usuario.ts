@@ -8,7 +8,6 @@ export interface UsuarioLogado {
   matricula: string;
   nome: string;
   perfil: Perfil;
-  deveTrocarSenha: boolean;
   equipes: { id: string; nome: string }[];
 }
 
@@ -18,7 +17,6 @@ export function usuarioDeDto(dto: UsuarioLogadoDto): UsuarioLogado {
     matricula: dto.matricula ?? '',
     nome: dto.nome ?? '',
     perfil: (dto.perfil ?? 'EXTERNO') as Perfil,
-    deveTrocarSenha: dto.deveTrocarSenha ?? false,
     equipes: (dto.equipes ?? []).filter((e) => e.ativa !== false).map((e) => ({ id: e.id ?? '', nome: e.nome ?? '' })),
   };
 }

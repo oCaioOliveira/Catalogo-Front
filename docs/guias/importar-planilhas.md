@@ -16,7 +16,7 @@ importe em duas etapas: **primeiro os relatórios, depois os cenários**, que ap
 
 ## 1. Baixar o modelo
 
-Na listagem do tipo de item, clique em **Importar** (ao lado de **Exportar**). Na primeira etapa, clique em **Baixar modelo**.
+Na listagem do tipo de item, abra **⋯ Mais ações** (ao lado de **Novo**) e clique em **Importar planilha**. Na primeira etapa, clique em **Baixar modelo**.
 
 ![A etapa Arquivo, com o botão "Baixar modelo" e a área para soltar a planilha](imagens/importacao-1-arquivo.png)
 
@@ -95,7 +95,7 @@ Os itens novos aparecem no começo da listagem. No histórico de cada item, a gr
 
 ## Importações anteriores e desfazer
 
-Na listagem, a seta ao lado de **Importar** abre **Importações anteriores**: data, quem importou, o arquivo, o resumo e a situação,
+Na listagem, **⋯ Mais ações** → **Importações anteriores** mostra data, quem importou, o arquivo, o resumo e a situação,
 com o relatório de cada uma. Cada pessoa vê as suas; o gestor, também as da equipe; o administrador, todas. Os arquivos ficam
 guardados por **7 dias**; depois disso, o relatório não está mais disponível.
 

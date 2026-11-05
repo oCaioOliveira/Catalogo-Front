@@ -95,6 +95,7 @@
         <th>Equipe</th>
         <th>Autor</th>
         <th>Aguardando há</th>
+        <th class="coluna-decisao"><span class="sr-only">Decisão</span></th>
       </tr>
     </ng-template>
     <ng-template #body let-item>
@@ -113,11 +114,33 @@
         <td>
           <span [title]="'Criado em ' + formatarDataHoraSistema(item.criadoEm)">{{ aguardando(item) }}</span>
         </td>
+        <td class="coluna-decisao">
+          <div class="acoes-decisao">
+            <p-button
+              label="Aprovar"
+              icon="pi pi-check"
+              severity="success"
+              size="small"
+              [outlined]="true"
+              [ariaLabel]="'Aprovar ' + (item.rotulo ?? 'o item')"
+              (onClick)="decidir(item, 'APROVAR')"
+            />
+            <p-button
+              label="Rejeitar"
+              icon="pi pi-times"
+              severity="danger"
+              size="small"
+              [text]="true"
+              [ariaLabel]="'Rejeitar ' + (item.rotulo ?? 'o item')"
+              (onClick)="decidir(item, 'REJEITAR')"
+            />
+          </div>
+        </td>
       </tr>
     </ng-template>
     <ng-template #emptymessage>
       <tr>
-        <td colspan="5" class="celula-vazia">
+        <td colspan="6" class="celula-vazia">
           <app-estado-vazio
             icone="pi-check-circle"
             titulo="Nenhum item aguardando aprovação"
@@ -131,3 +154,5 @@
 } @else {
   <div aria-busy="true" aria-label="Carregando"><p-skeleton height="12rem" /></div>
 }
+
+<app-dialogo-decisao (decidido)="aoDecidir()" />

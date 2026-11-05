@@ -7,14 +7,14 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { UsuarioCriadoDto } from '../../models/usuario-criado-dto';
+import { UsuarioDto } from '../../models/usuario-dto';
 import { UsuarioEntrada } from '../../models/usuario-entrada';
 
 export interface ApiV1UsuariosPost$Params {
       body?: UsuarioEntrada
 }
 
-export function apiV1UsuariosPost(http: HttpClient, rootUrl: string, params?: ApiV1UsuariosPost$Params, context?: HttpContext): Observable<StrictHttpResponse<UsuarioCriadoDto>> {
+export function apiV1UsuariosPost(http: HttpClient, rootUrl: string, params?: ApiV1UsuariosPost$Params, context?: HttpContext): Observable<StrictHttpResponse<UsuarioDto>> {
   const rb = new RequestBuilder(rootUrl, apiV1UsuariosPost.PATH, 'post');
   if (params) {
     rb.body(params.body, 'application/json');
@@ -25,7 +25,7 @@ export function apiV1UsuariosPost(http: HttpClient, rootUrl: string, params?: Ap
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<UsuarioCriadoDto>;
+      return r as StrictHttpResponse<UsuarioDto>;
     })
   );
 }

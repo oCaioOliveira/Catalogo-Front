@@ -6,6 +6,15 @@
           <li>{{ erro }}</li>
         }
       </ul>
+      @if (camposComErro().length > 0) {
+        <ul class="lista-campos-com-erro" aria-label="Campos com erro">
+          @for (campo of camposComErro(); track campo.id) {
+            <li>
+              <a [href]="'#' + campo.id" (click)="irParaCampo(campo.id, $event)">{{ campo.nome }}</a>
+            </li>
+          }
+        </ul>
+      }
     </p-message>
   }
 

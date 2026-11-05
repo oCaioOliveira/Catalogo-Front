@@ -17,7 +17,6 @@ function usuario(perfil: Perfil, id = 'u', equipes = ['A']): UsuarioLogado {
     matricula: id,
     nome: id,
     perfil,
-    deveTrocarSenha: false,
     equipes: equipes.map((e) => ({ id: e, nome: e })),
   };
 }

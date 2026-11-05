@@ -98,3 +98,11 @@ export function marcarUnicidade(formulario: FormularioRegistro, problema: Proble
   }
   return marcados;
 }
+
+/** A frase do resumo de erros do formulário, pela quantidade de campos com erro (a lista vem logo depois). */
+export function textoResumoErros(quantidade: number): string {
+  if (quantidade === 0) {
+    return 'Corrija os campos destacados.';
+  }
+  return quantidade === 1 ? 'Corrija o campo destacado:' : `Corrija os ${quantidade} campos destacados:`;
+}

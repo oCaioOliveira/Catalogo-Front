@@ -32,7 +32,6 @@ describe('FormularioRegistroComponent: criar item relacionado', () => {
       matricula: 'ana',
       perfil,
       equipes: [alfa],
-      deveTrocarSenha: false,
     };
     TestBed.configureTestingModule({
       providers: [

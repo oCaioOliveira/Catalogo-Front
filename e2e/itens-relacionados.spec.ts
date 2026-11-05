@@ -3,7 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { GRUPO, chamar, criar, idPor, listar, prefixoUnico, tokenDe } from './apoio/api';
 import { habilitarNaListagem, limparE2E } from './apoio/limpeza';
-import { campo, digitarData, entrarComo, escolherReferencia } from './apoio/sessao';
+import { campo, digitarData, entrarComo, escolherOpcao, escolherReferencia } from './apoio/sessao';
 import { UsuarioTeste, abrirComo, criarUsuarioDeTeste } from './apoio/usuarios-teste';
 
 /**
@@ -54,8 +54,9 @@ function relatorio(bateria: string): Record<string, unknown> {
     ambiente,
     status_resultado: status,
     data_execucao: '2026-10-01T10:00:00-03:00',
-    bateria_testes: bateria,
-    tipo_teste: 'Carga',
+    titulo: bateria,
+    bateria_testes: 1,
+    tipo_teste: 'API',
     executado_por: 'Equipe E2E',
   };
 }
@@ -128,7 +129,7 @@ test('1. o detalhe de um Projeto mostra os Relatórios e os Endpoints dele, sem 
   // A coluna do campo que aponta para o projeto seria sempre ele: não aparece.
   await expect(relatorios.getByRole('columnheader', { name: /^Projeto/ })).toHaveCount(0);
   await expect(endpoints.getByRole('columnheader', { name: /^Projeto/ })).toHaveCount(0);
-  await expect(relatorios.getByRole('columnheader', { name: /^Bateria de testes/ })).toBeVisible();
+  await expect(relatorios.getByRole('columnheader', { name: /^Título/ })).toBeVisible();
   await capturarTela(pagina, 'relacionados-01-detalhe-projeto');
 
   // Cada linha leva ao detalhe do item.
@@ -172,8 +173,9 @@ test('3. "Adicionar relatório de teste" a partir do projeto vem com o projeto p
   await escolherReferencia(pagina, /^Ambiente/, 'Homolog', 'Homologação');
   await escolherReferencia(pagina, /^Status/, 'Aprovado', /^Aprovado$/);
   await digitarData(pagina, /^Data de execução/, '20/10/2026 09:00');
-  await campo(pagina, /^Bateria de testes/).fill(`${prefixo} criado pelo projeto`);
-  await campo(pagina, /^Tipo de teste/).fill('Carga');
+  await campo(pagina, /^Título/).fill(`${prefixo} criado pelo projeto`);
+  await campo(pagina, /^Nº da bateria/).fill('1');
+  await escolherOpcao(pagina, /^Tecnologia/, 'API');
   await campo(pagina, /^Executado por/).fill('Equipe E2E');
   await capturarTela(pagina, 'relacionados-03-novo-com-projeto');
   await pagina.getByRole('button', { name: /^Salvar\b/ }).click();
@@ -250,10 +252,10 @@ test('7. paginação e ordenação dentro de uma seção; recolher uma seção e
   await relatorios.getByRole('button', { name: /^Page 2|Página 2|^2$/ }).click();
   await expect(linhas).toHaveCount(RELATORIOS + 1 - 10);
 
-  await relatorios.getByRole('columnheader', { name: /^Bateria de testes/ }).click();
+  await relatorios.getByRole('columnheader', { name: /^Título/ }).click();
   await expect(linhas).toHaveCount(10);
   await expect(linhas.first()).toContainText(`${prefixo} bateria 01`);
-  await relatorios.getByRole('columnheader', { name: /^Bateria de testes/ }).click();
+  await relatorios.getByRole('columnheader', { name: /^Título/ }).click();
   await expect(linhas.first()).toContainText(`${prefixo} criado pelo projeto`);
 
   const endpoints = secao(page, 'Endpoints de Serviço');
